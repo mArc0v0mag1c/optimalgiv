@@ -16,7 +16,7 @@ from juliacall import Main as jl
 
 
 # ---------------------------------------------------------------------
-# 0.  One-time Julia initialisation
+# One-time Julia initialisation
 # ---------------------------------------------------------------------
 def _init_julia() -> None:
     """Spin up Julia, load OptimalGIV, run once per session."""
