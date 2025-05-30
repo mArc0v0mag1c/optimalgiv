@@ -1,0 +1,20 @@
+[build-system]
+requires      = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name            = "optimalgiv"
+version         = "0.1.0"
+description     = "Python ⇄ Julia bridge for the OptimalGIV package"
+authors         = [ { name="Marco Zhang" } ]
+readme          = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "pandas>=1.5",
+    "numpy>=1.22",
+    "juliacall>=0.9",
+]
+
+[project.urls]
+"Source" = "https://github.com/mArc0v0mag1c/optimalgiv"
