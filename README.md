@@ -1,4 +1,3 @@
-````markdown
 # optimalgiv
 
 A minimal Python wrapper for [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl),
