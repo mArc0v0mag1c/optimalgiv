@@ -1,9 +1,11 @@
 ````markdown
 # optimalgiv
 
-A minimal Python wrapper for [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl), a Julia package developed by **Julie Fu** for estimating Generalized Instrumental Variable (GIV) models.
+A minimal Python wrapper for [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl),
+a Julia package developed by Zhiyu Fu for estimating Generalized Instrumental Variable (GIV) models.
 
-This interface enables Python users to call GIV estimators directly on pandas DataFrames using JuliaCall. Julia is automatically installed and all dependencies are resolved without manual setup.
+This interface enables Python users to call GIV estimators directly on pandas DataFrames using JuliaCall.
+Julia is automatically installed and all dependencies are resolved without manual setup.
 
 ---
 
