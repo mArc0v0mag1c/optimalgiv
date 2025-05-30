@@ -9,6 +9,7 @@ description     = "Python ⇄ Julia bridge for the OptimalGIV package"
 authors         = [ { name="Marco Zhang" } ]
 readme          = "README.md"
 requires-python = ">=3.9"
+license         = { file = "LICENSE" }
 
 dependencies = [
     "pandas>=1.5",
