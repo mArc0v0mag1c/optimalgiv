@@ -163,32 +163,3 @@ def coefficient_table(jl_model: Any) -> pd.DataFrame:
     if "Pr(>|t|)" in df.columns:
         df["Pr(>|t|)"] = df["Pr(>|t|)"].astype(float)
     return df
-
-
-# ---------------------------------------------------------------------------
-# Self-test
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    n, T = 4, 6
-    import numpy as _np
-    rng = _np.random.default_rng(0)
-
-    df_example = pd.DataFrame({
-        "id": _np.repeat(_np.arange(1, n+1), T),
-        "t":  _np.tile(_np.arange(1, T+1),   n),
-        "q":  rng.standard_normal(n*T),
-        "p":  _np.tile(rng.standard_normal(T), n),
-        "w":  1.0
-    })
-
-    model = giv(
-        df_example,
-        "q + id & endog(p) ~ 0",
-        id="id", t="t", weight="w",
-        algorithm="scalar_search",
-        guess={"Aggregate": 2.0}
-    )
-
-    print("Estimated coefficients:", model.coef)
-    print("\nCoefficient table:")
-    print(model.coefficient_table().head())
