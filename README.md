@@ -1,9 +1,8 @@
 # optimalgiv
 
-A minimal Python wrapper for [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl),
-a Julia package developed by Zhiyu Fu for estimating Generalized Instrumental Variable (GIV) models.
+A minimal Python wrapper for [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl)
 
-This interface enables Python users to call GIV estimators directly on pandas DataFrames using JuliaCall.
+This interface enables Python users to call Granular Instrumental Variables (GIV) estimators directly on pandas DataFrames using JuliaCall.
 Julia is automatically installed and all dependencies are resolved without manual setup.
 
 ---
@@ -53,13 +52,13 @@ print(model.coefficient_table())
 
 ---
 
-## Credits
+## References
 
-This package wraps the core functionality of [`OptimalGIV.jl`](https://github.com/FuZhiyu/OptimalGIV.jl), authored by **Zhiyu Fu**.
-All modeling logic and algorithms originate from her original Julia implementation.
+- Gabaix, Xavier, and Ralph S.J. Koijen.  
+  *Granular Instrumental Variables.*  
+  *Journal of Political Economy*, 132(7), 2024, pp. 2274–2303.
 
----
+- Chaudhary, Manav, Zhiyu Fu, and Haonan Zhou.  
+  *Anatomy of the Treasury Market: Who Moves Yields?*  
+  Available at SSRN: [https://ssrn.com/abstract=5021055](https://ssrn.com/abstract=5021055)
 
-## License
-
-MIT License
