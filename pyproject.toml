@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "optimalgiv"
-version         = "0.1.1"
+version         = "0.1.8"
 description     = "Python ⇄ Julia bridge for the OptimalGIV package"
 authors         = [ { name="Marco Zhang" } ]
 readme          = "README.md"
