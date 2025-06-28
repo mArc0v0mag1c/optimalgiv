@@ -13,6 +13,7 @@ import pandas as pd
 from typing import Any, Optional
 from juliacall import Main as jl, AnyValue
 from pandas.api.types import CategoricalDtype
+import math
 
 
 # ---------------------------------------------------------------------
@@ -61,32 +62,105 @@ def _jf_to_pd(jdf):
 
     return pd.DataFrame(cols)
 
+# def _pd_to_jf(df: pd.DataFrame):
+#     """Convert a pandas DataFrame to a Julia DataFrame, preserving categorical levels."""
+#     cols = {}
+#     for name in df.columns:
+#         jname = jl.Symbol(name)
+#         col = df[name]
+#
+#         if isinstance(col.dtype, CategoricalDtype):
+#             if col.cat.ordered:
+#                 raise ValueError(f"Column '{name}' is an ordered categorical, which is not supported. "
+#                                  "Please cast it to unordered (e.g., `df['{name}'] = df['{name}'].astype('category')`).")
+#
+#             # levels = [str(cat) for cat in col.dtype.categories]
+#             # data_vec = [str(v) for v in col]
+#             levels = list(col.dtype.categories)
+#             # data_vec = col.to_numpy(copy=False)
+#             data_vec = col.tolist()
+#
+#             jcol = jl.categorical(data_vec, levels=levels, ordered=False)
+#
+#         else:
+#             jcol = col.to_numpy()
+#
+#         cols[jname] = jcol
+#
+#     return jl.DataFrame(cols)
+
+
 def _pd_to_jf(df: pd.DataFrame):
-    """Convert a pandas DataFrame to a Julia DataFrame, preserving categorical levels."""
+    """
+    Convert a pandas DataFrame to a Julia DataFrame, translating
+    np.nan / None → Julia `missing` and preserving categorical levels.
+    """
     cols = {}
+    _jmissing = jl.missing
+
+    # Pre-compile the Julia constructors we need once for speed
+    _V_M_F64 = jl.seval("Vector{Union{Missing, Float64}}")
+    _V_M_I64 = jl.seval("Vector{Union{Missing, Int64}}")
+    _V_M_BOOL = jl.seval("Vector{Union{Missing, Bool}}")
+    _V_M_STR = jl.seval("Vector{Union{Missing, String}}")
+
     for name in df.columns:
         jname = jl.Symbol(name)
         col = df[name]
 
+        # ---------- CATEGORICAL ----------
         if isinstance(col.dtype, CategoricalDtype):
             if col.cat.ordered:
-                raise ValueError(f"Column '{name}' is an ordered categorical, which is not supported. "
-                                 "Please cast it to unordered (e.g., `df['{name}'] = df['{name}'].astype('category')`).")
+                raise ValueError(
+                    f"Column '{name}' is an *ordered* categorical, "
+                    "which OptimalGIV does not handle. "
+                    "Cast it to unordered first."
+                )
 
-            # levels = [str(cat) for cat in col.dtype.categories]
-            # data_vec = [str(v) for v in col]
             levels = list(col.dtype.categories)
-            # data_vec = col.to_numpy(copy=False)
-            data_vec = col.tolist()
-
+            data_vec = [
+                _jmissing if pd.isna(x) else x
+                for x in col.tolist()
+            ]
             jcol = jl.categorical(data_vec, levels=levels, ordered=False)
 
+        # ---------- NUMERIC: FLOAT ----------
+        elif col.dtype.kind == "f":
+            data_vec = [
+                _jmissing if (isinstance(x, float) and math.isnan(x)) else float(x)
+                for x in col.to_numpy()
+            ]
+            jcol = _V_M_F64(data_vec)
+
+        # ---------- NUMERIC: (SIGNED) INT ----------
+        elif col.dtype.kind in ("i", "u"):
+            # pandas nullable Int64Dtype already uses <NA>; others use NaN
+            data_vec = [
+                _jmissing if pd.isna(x) else int(x)
+                for x in col.to_numpy(dtype="object")
+            ]
+            jcol = _V_M_I64(data_vec)
+
+        # ---------- BOOLEAN ----------
+        elif col.dtype.kind == "b":
+            data_vec = [
+                _jmissing if pd.isna(x) else bool(x)
+                for x in col.to_numpy(dtype="object")
+            ]
+            jcol = _V_M_BOOL(data_vec)
+
+        # ---------- EVERYTHING ELSE (objects, strings, datetimes) ----------
         else:
-            jcol = col.to_numpy()
+            data_vec = [
+                _jmissing if pd.isna(x) else str(x)
+                for x in col.to_numpy(dtype="object")
+            ]
+            jcol = _V_M_STR(data_vec)
 
         cols[jname] = jcol
 
     return jl.DataFrame(cols)
+
 
 # ---------------------------------------------------------------------------
 # Model Wrapper
