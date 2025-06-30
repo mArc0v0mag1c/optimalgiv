@@ -150,7 +150,7 @@ formula ="q + id & endog(p) ~ 1"
 # 4. Heterogeneous elasticity by id, with one control
 formula ="q + id & endog(p) ~ n1"
 
-# 5. Fully saturated: elasticity by id, controls vary by id, no global intercept
+# 5. Fully saturated: elasticity by id, controls and intercepts vary by id (absorbed by fixed effect), no global intercept
 formula ="q + id & endog(p) ~ 0 + fe(id) + fe(id) & (n1 + n2)"
 ```
 ---
@@ -335,11 +335,8 @@ model6 = giv(
 
 ## References
 
-- Gabaix, Xavier, and Ralph S.J. Koijen.  
-  *Granular Instrumental Variables.*  
-  *Journal of Political Economy*, 132(7), 2024, pp. 2274–2303.
+Please cite:
 
-- Chaudhary, Manav, Zhiyu Fu, and Haonan Zhou.  
-  *Anatomy of the Treasury Market: Who Moves Yields?*  
-  Available at SSRN: [https://ssrn.com/abstract=5021055](https://ssrn.com/abstract=5021055)
+- Gabaix, Xavier, and Ralph S.J. Koijen. Granular Instrumental Variables. Journal of Political Economy, 132(7), 2024, pp. 2274–2303.
+- Chaudhary, Manav, Zhiyu Fu, and Haonan Zhou. Anatomy of the Treasury Market: Who Moves Yields? Available at SSRN: https://ssrn.com/abstract=5021055
 
