@@ -7,13 +7,53 @@ Julia is automatically installed and all dependencies are resolved without manua
 
 ---
 
+## Model Specification
+
+The Granular Instrumental Variables (GIV) model estimated by this package follows the specification:
+
+<img width="773" alt="image" src="https://github.com/user-attachments/assets/e3b8797a-de2d-4502-ae2a-d5d2528eda44" />
+
+
+where:
+
+* $q_{i,t}$ and $p_t$ are endogenous,
+* $\mathbf{C}_{i,t}$ is a vector of controls for slopes,
+* $\mathbf{X}_{i,t}$ is a vector of controls for intercepts,
+* $\boldsymbol{\zeta}$, $\boldsymbol{\beta}$ are coefficient vectors,
+* $u_{i,t}$ is the structural residual, and
+* $S_{i,t}$ is the weighting variable.
+
+The equilibrium price $p_t$ is derived by imposing market clearing: $\sum_i S_{i,t} q_{i,t} = 0$, and the model is estimated using the moment condition:
+
+$$
+\mathbb{E}[u_{i,t} u_{j,t}] = 0
+$$
+
+for all $i \neq j$. This implies orthogonality across agents' residuals.
+
+---
+
+### Panel Data and Coverage
+
+The GIV model supports unbalanced panel data. However, some estimation algorithms (e.g. "scalar_search" and "debiased_ols") **require complete coverage**, meaning:
+
+$$
+\sum_i S_{i,t} q_{i,t} = 0
+$$
+
+must hold exactly **within the sample**. This ensures internal consistency of the equilibrium condition. 
+
+If the adding-up constraint is not satisfied, the model will adjust accordingly, but but **interpretation of estimated coefficients should be made with caution**, as residual market imbalances may bias elasticities and standard errors. (See the `complete_coverage` argument below for details.)
+
+---
+
 ## Installation
 
 ```bash
 pip install optimalgiv
 ````
 
-On first use, `optimalgiv` will automatically:
+On first importing, `optimalgiv` will automatically:
 
 * Install Julia (if not already available)
 * Install `OptimalGIV.jl` and supporting packages
@@ -21,36 +61,277 @@ On first use, `optimalgiv` will automatically:
 
 ---
 
-## Quickstart
+## Usage
+
+### Basic Example
 
 ```python
 import pandas as pd
 import numpy as np
 from optimalgiv import giv
 
+# Simulate a minimal balanced panel dataset
+np.random.seed(42)
 df = pd.DataFrame({
-    "id":  np.repeat([1, 2], 5),
-    "t":   list(range(1, 6)) * 2,
+    "id":  np.tile([1, 2], 5),            # two entities, 5 periods
+    "t":   np.repeat(np.arange(1, 6), 2),
     "q":   np.random.randn(10),
     "p":   np.random.randn(10),
     "η1":  np.random.randn(10),
     "η2":  np.random.randn(10),
     "absS": np.abs(np.random.randn(10)),
 })
+df['id'] = df['id'].astype('category') # ensure id interactions map to distinct groups
 
+# Define the model formula
+formula = "q + id & endog(p) ~ 0 + fe(id) + fe(id) & (η1 + η2)"
+
+# Provide an initial guess (a good guess is critical)
+guess = [2.0, 2.0]
+
+# Estimate the model
 model = giv(
-    df,
-    "q + endog(p) ~ id & (η1 + η2)",
-    id="id", t="t", weight="absS",
-    algorithm="scalar_search",
-    guess={"Aggregate": 2.0}
+    df = df,
+    formula = "q + id & endog(p) ~ 0 + fe(id) + fe(id) & (η1 + η2)",
+    id = "id",
+    t = "t",
+    weight = "absS",
+    algorithm = "iv",
+    guess = guess,
+    save = 'all', # saves both fixed‐effects (model.fe) and residuals (model.residual_df)
 )
 
-print(model.coef)
-print(model.coefficient_table())
+# View the result
+model.summary()
+
+##                       GIVModel (Average coef: 2.3)
+## ───────────────────────────────────────────────────────────────────────────
+##            Estimate  Std. Error      t-stat  Pr(>|t|)  Lower 95%  Upper 95%
+## ───────────────────────────────────────────────────────────────────────────
+## id: 1 & p  -2.53911     10.2877  -0.246811     0.8113   -26.2625    21.1843
+## id: 2 & p   6.18373     64.4392   0.0959623    0.9259  -142.413    154.781
+## ───────────────────────────────────────────────────────────────────────────
+
+
+```
+---
+
+### Formula Specification
+
+The model formula follows the convention:
+
+```python
+q + interactions & endog(p) ~ exog_controls
+```
+
+Where:
+
+* `q`: **Response variable** (e.g., quantity).
+* `endog(p)`: **Endogenous variable** (e.g., price). Must appear on the **left-hand side**.
+
+  > **Note:** A *positive* estimated coefficient implies a *negative* response of `q` to `p` (i.e., a downward-sloping demand curve).
+* `interactions`: Exogenous variables used to parameterize **heterogeneous elasticities**, such as entity identifiers or group characteristics.
+* `exog_controls`: Exogenous control variables. Supports **fixed effects** (e.g., `fe(id)`) using the same syntax as `FixedEffectModels.jl`.
+
+---
+
+#### Examples of formulas:
+
+```
+# 1. Homogeneous elasticity with no intercept and two controls
+formula = "q + endog(p) ~ 0 + n1 + n2"
+
+# 2. Homogeneous elasticity, with fixed effects absorbed by id
+formula ="q + endog(p) ~ n1 + n2 + fe(id)"
+
+# 3. Heterogeneous elasticity by id, no controls
+formula ="q + id & endog(p) ~ 1"
+
+# 4. Heterogeneous elasticity by id, with one control
+formula ="q + id & endog(p) ~ n1"
+
+# 5. Fully saturated: elasticity by id, controls vary by id, no global intercept
+formula ="q + id & endog(p) ~ 0 + fe(id) + fe(id) & (n1 + n2)"
+```
+---
+
+### Key Function: `giv()`
+```python
+giv(df, formula: str, id: str, t: str, weight: str, **kwargs) -> GIVModel
+```
+
+#### Required Arguments
+
+* `df`: `pandas.DataFrame` containing panel data. **Must be balanced** for some algorithms (e.g., `scalar_search`).
+* `formula`: A **string** representing the model (Julia-style formula syntax). See examples above.
+* `id`: Name of the column identifying entities (e.g., `"firm_id"`).
+* `t`: Name of the time variable column.
+* `weight`: Name of the weight/size column (e.g., market shares `S_i,t`).
+
+#### Keyword Arguments (Optional)
+
+* `algorithm`: One of `"iv"` (default), `"iv_twopass"`, `"debiased_ols"`, or `"scalar_search"`.
+* `guess`: Initial guess for ζ coefficients. (See below for usage details)
+* `exclude_pairs`: Dictionary excluding pairs from moment conditions.
+  Example: `{1: [2, 3], 4: [5]}` excludes (1,2), (1,3), and (4,5).
+* `quiet`: Set `True` to suppress warnings and info messages.
+* `save`: `"none"` (default), `"residuals"`, `"fe"`, or `"all"` — controls what is stored on the returned model:
+
+  * `"none"`: neither residuals nor fixed-effects are saved
+  * `"residuals"`: saves residuals in `model.residual_df`
+  * `"fe"`: saves fixed-effects in `model.fe`
+  * `"all"`: saves both `model.residual_df` and `model.fe`
+
+* `save_df`: If `True`, the full estimation dataframe (with residuals, coefficients, fixed effects) is stored in `model.df`.
+* `complete_coverage`: Whether the dataset **covers the full market in each time period**, meaning
+$\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
+
+  * Default is `None`, which triggers auto-detection: the model checks this condition period-by-period and sets the flag to `True` or `False` accordingly.
+  * If the condition does not hold (`False`), you can still force estimation by setting `quiet=True`, but results may be biased. Use with caution.
+  * Required for `"scalar_search"` and `"debiased_ols"` algorithms.
+
+* `return_vcov`: Whether to compute and return the variance–covariance matrices. (default: `True`)
+* `contrasts`: Dict for specifying categorical variable contrasts (Julia `StatsModels.jl` style). Untested — use with caution.
+* `tol`: Convergence tolerance for the solver (default: `1e-6`)
+* `iterations`: Maximum number of solver iterations (default: `100`)
+* `solver_options`: Additional options passed to the nonlinear solver (`NLsolve.jl`)
+
+---
+
+### Working with Results
+
+The output is a `GIVModel` object with rich methods and fields:
+
+```python
+# Methods
+model.summary()            # ▶ print full Julia-style summary
+model.coef()               # ▶ numpy array of [ζ; β]
+model.vcov()               # ▶ full (ζ+β) variance–covariance matrix
+model.stderror()           # ▶ numpy array of standard errors
+model.confint(level=0.95)  # ▶ (n×2) array of confidence intervals
+model.coeftable(level=0.95)# ▶ pandas.DataFrame of estimates, SEs, t-stats, p-values
+model.coefnames()          # ▶ list[str]: names of all coefficients (ζ then β)
+
+# Fields
+model.endog_coef           # ▶ numpy array of ζ coefficients
+model.exog_coef            # ▶ numpy array of β coefficients
+model.agg_coef             # ▶ aggregate (or average) elasticity
+model.endog_vcov           # ▶ VCOV of ζ coefficients
+model.exog_vcov            # ▶ VCOV of β coefficients
+model.nobs                 # ▶ int: number of observations
+model.dof_residual         # ▶ int: residual degrees of freedom
+model.formula              # ▶ str: Julia-style formula
+model.converged            # ▶ bool: solver convergence status
+model.endog_coefnames      # ▶ list[str]: ζ coefficient names
+model.exog_coefnames       # ▶ list[str]: β coefficient names
+model.idvar                # ▶ str: entity identifier column name
+model.tvar                 # ▶ str: time identifier column name
+model.weightvar            # ▶ str or None: weight column name
+model.exclude_pairs        # ▶ dict: excluded moment-condition pairs
+model.coefdf               # ▶ pandas.DataFrame of entity-specific coefficients
+model.fe                   # ▶ pandas.DataFrame of fixed-effects (if saved)
+model.residual_df          # ▶ pandas.DataFrame of residuals (if saved)
+model.df                   # ▶ pandas.DataFrame of full estimation output (if save_df=True)
 ```
 
 ---
+
+## Algorithms
+
+The package implements four algorithms for GIV estimation:
+
+1. **`"iv"`** (Instrumental Variables)  
+   - Default, recommended  
+   - Uses moment condition $$\(\mathbb{E}[u_i\,u_{S,-i}]=0\)$$  
+   - $$O(N)\$$ implementation  
+   - Supports `exclude_pairs` (exclude certain pairs $E[u_i u_j] = 0$ from the moment conditions)
+   - Supports flexible elasticity specs, unbalanced panels  
+
+2. **`"iv_twopass"`**  
+   - Same moments as `"iv"` but $$\O(N^2)\$$ two-pass  
+   - Easier to debug, handles large `exclude_pairs`  
+
+3. **`"debiased_ols"`**  
+   - Uses $$\mathbb{E}[u_i\,C_{it}\,p_{it}] = \sigma_i^2 / \zeta_{St}$$
+   - Requires **complete market coverage**  
+   - More efficient but restrictive  
+
+4. **`"scalar_search"`**  
+   - Finds a single aggregate elasticity  
+   - Requires balanced panel, constant weights, complete coverage  
+   - Useful for diagnostics or initial-guess formation  
+
+---
+
+### Initial Guesses
+
+A good guess is key to stable estimation. If omitted, OLS‐based defaults may always fail. Examples:
+
+```python
+import numpy as np
+from optimalgiv import giv
+# 1) Scalar guess (for homogeneous elasticity)
+guess = 1.0
+model1 = giv(
+    df,
+    "q + endog(p) ~ n1 + fe(id)",
+    id="id", t="t", weight="S",
+    guess=guess
+)
+
+# 2) Dict by group name (heterogeneous by id)
+guess = {"id": [1.2, 0.8]}
+model2 = giv(
+    df,
+    "q + id & endog(p) ~ 1",
+    id="id", t="t", weight="S",
+    guess=guess
+)
+
+# 3) Dict for multiple interactions
+guess = {
+    "id": [1.0, 0.9],
+    "n1": [0.5, 0.3]
+}
+model3 = giv(
+    df,
+    "q + id & endog(p) + n1 & endog(p) ~ fe(id)",
+    id="id", t="t", weight="S",
+    guess=guess
+)
+
+# 4) Dict keyed by exact coefnames
+names = model3.coefnames()
+guess = {name: 0.1 for name in names}
+model4 = giv(
+    df,
+    "q + id & endog(p) + n1 & endog(p) ~ fe(id)",
+    id="id", t="t", weight="S",
+    guess=guess
+)
+
+# 5) Scalar-search with heterogeneous formula
+guess = {"Aggregate": 2.5}
+model5 = giv(
+    df,
+    "q + id & endog(p) ~ 0 + fe(id) + fe(id)&(n1 + n2)",
+    id="id", t="t", weight="S",
+    algorithm="scalar_search",
+    guess=guess
+)
+
+# 6) Use estimated ζ from model5 as initial guess
+guess = model5.endog_coef
+model6 = giv(
+    df,
+    "q + id & endog(p) ~ 0 + fe(id) + fe(id)&(n1 + n2)",
+    id="id", t="t", weight="S",
+    guess=guess
+)
+
+```
+---
+
 
 ## References
 
