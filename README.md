@@ -138,8 +138,6 @@ Where:
 * `interactions`: Exogenous variables used to parameterize **heterogeneous elasticities**, such as entity identifiers or group characteristics.
 * `exog_controls`: Exogenous control variables. Supports **fixed effects** (e.g., `fe(id)`) using the same syntax as `FixedEffectModels.jl`.
 
----
-
 #### Examples of formulas:
 
 ```
