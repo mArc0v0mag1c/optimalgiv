@@ -251,7 +251,7 @@ The package implements four algorithms for GIV estimation:
    - Supports flexible elasticity specs, unbalanced panels  
 
 2. **`"iv_twopass"`**  
-   - Same moments as `"iv"` but $$\O(N^2)\$$ two-pass  
+   - Same moments as `"iv"` but $$O(N^2)\$$ two-pass  
    - Easier to debug, handles large `exclude_pairs`  
 
 3. **`"debiased_ols"`**  
