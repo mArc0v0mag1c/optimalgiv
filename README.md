@@ -5,6 +5,11 @@ A minimal Python wrapper for [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalG
 This interface enables Python users to call Granular Instrumental Variables (GIV) estimators directly on pandas DataFrames using JuliaCall.
 Julia is automatically installed and all dependencies are resolved without manual setup.
 
+> **Note:** This README provides full usage details for Python users.  
+> For more technical and Julia-specific documentation, see:  
+> https://github.com/FuZhiyu/OptimalGIV.jl/blob/main/README.md
+
+
 ---
 
 ## Model Specification
