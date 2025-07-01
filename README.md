@@ -28,13 +28,13 @@ where:
 * $u_{i,t}$ is the structural residual, and
 * $S_{i,t}$ is the weighting variable.
 
-The equilibrium price $p_t$ is derived by imposing market clearing: $\sum_i S_{i,t} q_{i,t} = 0$, and the model is estimated using the moment condition:
+The equilibrium price $p_t$ is derived by imposing the market clearing condition and the model is estimated using the moment condition:
 
 $$
 \mathbb{E}[u_{i,t} u_{j,t}] = 0
 $$
 
-for all $i \neq j$. This implies orthogonality across agents' residuals.
+for all $i \neq j$. This implies orthogonality across sectors' residuals.
 
 ---
 
@@ -48,7 +48,7 @@ $$
 
 must hold exactly **within the sample**. This ensures internal consistency of the equilibrium condition. 
 
-If the adding-up constraint is not satisfied, the model will adjust accordingly, but but **interpretation of estimated coefficients should be made with caution**, as residual market imbalances may bias elasticities and standard errors. (See the `complete_coverage` argument below for details.)
+If the adding-up constraint is not satisfied, the model will adjust accordingly, but **the interpretation of estimated coefficients should be made with caution**, as residual market imbalances may bias elasticities and standard errors. (See the `complete_coverage` argument below for details.)
 
 ---
 
@@ -214,16 +214,23 @@ model.stderror()           # ▶ numpy array of standard errors
 model.confint(level=0.95)  # ▶ (n×2) array of confidence intervals
 model.coeftable(level=0.95)# ▶ pandas.DataFrame of estimates, SEs, t-stats, p-values
 model.coefnames()          # ▶ list[str]: names of all coefficients (ζ then β)
+model.residuals()          # ▶ numpy array of the residuals for each observation
 
 # Fields
 model.endog_coef           # ▶ numpy array of ζ coefficients
 model.exog_coef            # ▶ numpy array of β coefficients
-model.agg_coef             # ▶ aggregate (or average) elasticity
+model.agg_coef             # ▶ float: aggregate elasticity
 model.endog_vcov           # ▶ VCOV of ζ coefficients
 model.exog_vcov            # ▶ VCOV of β coefficients
 model.nobs                 # ▶ int: number of observations
 model.dof_residual         # ▶ int: residual degrees of freedom
 model.formula              # ▶ str: Julia-style formula
+model.formula_schema       # ▶ str: the internal schema of the Julia‐style formula after parsing
+model.residual_variance    # ▶ numpy array of the estimated variance of the residuals for each entity (ûᵢ’s variance)
+model.N                    # ▶ int: the number of cross‐section entities in the panel
+model.T                    # ▶ int: the number of time periods per entity in the panel
+model.dof                  # ▶ int: the total number of estimated parameters (length of ζ plus length of β)
+model.responsename         # ▶ str: the name of the response variable(s)
 model.converged            # ▶ bool: solver convergence status
 model.endog_coefnames      # ▶ list[str]: ζ coefficient names
 model.exog_coefnames       # ▶ list[str]: β coefficient names
@@ -250,16 +257,18 @@ The package implements four algorithms for GIV estimation:
    - Supports `exclude_pairs` (exclude certain pairs $E[u_i u_j] = 0$ from the moment conditions)
    - Supports flexible elasticity specs, unbalanced panels  
 
-2. **`"iv_twopass"`**  
-   - Same moments as `"iv"` but $$O(N^2)\$$ two-pass  
-   - Easier to debug, handles large `exclude_pairs`  
+2. **`"iv_twopass"`**: Numerically identical to `iv` but uses a more straightforward O(N²) implementation with two passes over entity pairs. This is useful for:
+   - Debugging purposes
+   - When the O(N) optimization in `iv` might cause numerical issues
+   - When there are many pairs to be excluded, which will slow down the algorithm in `iv`
+   - Understanding the computational flow of the moment conditions 
 
-3. **`"debiased_ols"`**  
+5. **`"debiased_ols"`**  
    - Uses $$\mathbb{E}[u_i\,C_{it}\,p_{it}] = \sigma_i^2 / \zeta_{St}$$
    - Requires **complete market coverage**  
    - More efficient but restrictive  
 
-4. **`"scalar_search"`**  
+6. **`"scalar_search"`**  
    - Finds a single aggregate elasticity  
    - Requires balanced panel, constant weights, complete coverage  
    - Useful for diagnostics or initial-guess formation  
