@@ -244,7 +244,7 @@ model.df                   # ▶ pandas.DataFrame of full estimation output (if 
 
 ---
 
-## Algorithms
+### Algorithms
 
 The package implements four algorithms for GIV estimation:
 
