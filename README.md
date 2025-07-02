@@ -262,7 +262,7 @@ The package implements four algorithms for GIV estimation:
    - Understanding the computational flow of the moment conditions 
 
 5. **`"debiased_ols"`**  
-   - Uses $$\mathbb{E}[u_i\,C_{it}\,p_{it}] = \sigma_i^2 / \zeta_{St}$$
+   - Uses $$\mathbb{E}[u_iC_{it}p_{it}] = \sigma_i^2 / \zeta_{St}$$
    - Requires **complete market coverage**  
    - More efficient but restrictive  
 
