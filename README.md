@@ -6,9 +6,7 @@ This interface enables Python users to call Granular Instrumental Variables (GIV
 Julia is automatically installed and all dependencies are resolved without manual setup.
 
 > **Note:** This README provides full usage details for Python users.  
-> For more technical and Julia-specific documentation, see:  
-> https://github.com/FuZhiyu/OptimalGIV.jl/blob/main/README.md
-
+> For more technical and Julia-specific documentation, please see [here](https://github.com/FuZhiyu/OptimalGIV.jl/blob/main/README.md)
 
 ---
 
