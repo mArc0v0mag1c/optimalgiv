@@ -268,7 +268,7 @@ The package implements four algorithms for GIV estimation:
 
 6. **`"scalar_search"`**  
    - Finds a single aggregate elasticity  
-   - Requires balanced panel, constant weights, complete coverage  
+   - Requires **balanced panel, constant weights, complete coverage** 
    - Useful for diagnostics or initial-guess formation  
 
 ---
