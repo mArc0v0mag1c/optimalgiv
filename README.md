@@ -240,7 +240,7 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
   model = giv(df, formula, id="id", t="t", solver_options=solver_opts)
   ```
 
-  For the full list of options, see the [NLsolve.jl documentation](https://julianlsolvers.github.io/NLsolve.jl/stable/#Options).
+  For the full list of options, see the [NLsolve.jl documentation](https://docs.sciml.ai/NonlinearSolve/stable/api/nlsolve/).
 
 
 ---
