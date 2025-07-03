@@ -324,20 +324,23 @@ def giv(
             jkey = jl.Symbol(py_key)
 
             # --- special case `method`: always a Julia Symbol ---
-            if py_key == "method":
-                if isinstance(py_val, str):
-                    jval = jl.Symbol(py_val)
-                else:
-                    jval = py_val
+            # if py_key == "method" or py_key == 'autodiff':
+            #     if isinstance(py_val, str):
+            #         jval = jl.Symbol(py_val)
+            #     else:
+            #         jval = py_val
 
             # --- special case `linesearch`: either a Julia object or string name ---
-            elif py_key == "linesearch":
+            if py_key == "linesearch":
                 if isinstance(py_val, str):
                     # e.g. "HagerZhang" → LineSearches.HagerZhang()
                     jval = jl.seval(f"LineSearches.{py_val}()")
                 else:
                     # assume they already passed jl.LineSearches.HagerZhang()
                     jval = py_val
+
+            elif isinstance(py_val, str):
+                jval = jl.Symbol(py_val)
 
             # --- everything else (ftol, show_trace, autoscale, etc.) just passthrough ---
             else:
