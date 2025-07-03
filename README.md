@@ -192,10 +192,56 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
   * Required for `"scalar_search"` and `"debiased_ols"` algorithms.
 
 * `return_vcov`: Whether to compute and return the variance–covariance matrices. (default: `True`)
-* `contrasts`: Dict for specifying categorical variable contrasts (Julia `StatsModels.jl` style). Untested — use with caution.
 * `tol`: Convergence tolerance for the solver (default: `1e-6`)
 * `iterations`: Maximum number of solver iterations (default: `100`)
-* `solver_options`: Additional options passed to the nonlinear solver (`NLsolve.jl`)
+
+#### Advanced keyword arguments (Optional; Use with caution)
+
+* **`contrasts`** (`Dict[str, Union[str, Any]]`)
+  Specifies encoding schemes for **categorical variables**, following Julia's `StatsModels.jl`.
+
+  * Keys: column names (as strings).
+  * Values: either
+
+    * a string like `"HelmertCoding"`, `"TreatmentCoding"` (converted automatically to `StatsModels.<X>()`), or
+    * an actual Julia object like `jl.StatsModels.HelmertCoding()`
+      The bridge converts this to a Julia `Dict(:id => HelmertCoding(), ...)` for use in formula parsing.
+      
+      > ⚠️ Untested — use with caution and verify the design matrix if using non-default encodings.
+      > For details see [StatsModels.jl contrasts](https://juliastats.org/StatsModels.jl/stable/contrasts/).
+
+* **`solver_options`** (`Dict[str, Any]`)
+  Extra options passed to the nonlinear system solver from [`NLsolve.jl`](https://github.com/JuliaNLSolvers/NLsolve.jl).
+  The Python dict is converted to a Julia `NamedTuple` with keyword-style arguments.
+  Common options include:
+
+  * `"method"`: `"newton"` , `"anderson"`, or `"trust_region"` (defaults to Newton)
+  * `"ftol"`: absolute residual tolerance
+  * `"xtol"`: absolute solution tolerance
+  * `"iterations"`: max iterations
+  * `"show_trace"`: verbose output
+  * `"linesearch"`: can be
+
+    * a Julia object like `jl.LineSearches.HagerZhang()`, or
+    * a string like `"HagerZhang"`, which is expanded to `LineSearches.HagerZhang()` automatically
+
+  **Example:**
+
+  ```python
+  solver_opts = {
+      "method": "newton",
+      "ftol": 1e-8,
+      "xtol": 1e-8,
+      "iterations": 1000,
+      "show_trace": True,
+      "linesearch": "HagerZhang",  # ← string is auto-converted
+  }
+
+  model = giv(df, formula, id="id", t="t", solver_options=solver_opts)
+  ```
+
+  For the full list of options, see the [NLsolve.jl documentation](https://docs.sciml.ai/NonlinearSolve/stable/api/nlsolve/).
+
 
 ---
 
