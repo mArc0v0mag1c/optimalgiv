@@ -20,20 +20,12 @@ import math
 # One-time Julia initialisation
 # ---------------------------------------------------------------------
 
-##  1. def func_name(input: InputType) -> OutputType:
-##  2. (guess: dict) hints the parameter named guess is expected to be a dictionary
 
 def _py_to_julia_guess(guess: dict) -> Any:
     """Handle nested guesses for categorical terms"""
-    jl_dict = jl.Dict() # an empty Julia dictionary created by jl (juliacall)
+    jl_dict = jl.Dict()
     for term, value in guess.items():
         if isinstance(value, dict):
-            # if value is a dictionary type i.e. guess is a nested dic, then do following...
-            # guess = {
-            #     "group": {"A": 1.0, "B": 2.0},       # nested dict
-            #     "id": [0.8, 0.9, 1.1],               # numpy array or list
-            #     "Constant": 0.5                      # scalar i.e. a single number
-            # }
             jl_subdict = jl.Dict()
             for k, v in value.items():
                 jl_subdict[str(k)] = float(v)
@@ -61,34 +53,6 @@ def _jf_to_pd(jdf):
     }
 
     return pd.DataFrame(cols)
-
-# def _pd_to_jf(df: pd.DataFrame):
-#     """Convert a pandas DataFrame to a Julia DataFrame, preserving categorical levels."""
-#     cols = {}
-#     for name in df.columns:
-#         jname = jl.Symbol(name)
-#         col = df[name]
-#
-#         if isinstance(col.dtype, CategoricalDtype):
-#             if col.cat.ordered:
-#                 raise ValueError(f"Column '{name}' is an ordered categorical, which is not supported. "
-#                                  "Please cast it to unordered (e.g., `df['{name}'] = df['{name}'].astype('category')`).")
-#
-#             # levels = [str(cat) for cat in col.dtype.categories]
-#             # data_vec = [str(v) for v in col]
-#             levels = list(col.dtype.categories)
-#             # data_vec = col.to_numpy(copy=False)
-#             data_vec = col.tolist()
-#
-#             jcol = jl.categorical(data_vec, levels=levels, ordered=False)
-#
-#         else:
-#             jcol = col.to_numpy()
-#
-#         cols[jname] = jcol
-#
-#     return jl.DataFrame(cols)
-
 
 def _pd_to_jf(df: pd.DataFrame):
     """
@@ -161,7 +125,6 @@ def _pd_to_jf(df: pd.DataFrame):
 
     return jl.DataFrame(cols)
 
-
 # ---------------------------------------------------------------------------
 # Model Wrapper
 # ---------------------------------------------------------------------------
@@ -187,15 +150,7 @@ class GIVModel:
         self.complete_coverage = bool(jl_model.complete_coverage)
         self.formula           = str(jl_model.formula)
         self.formula_schema = str(jl_model.formula_schema)
-        # formula::FormulaTerm; convert it to str first then complete conversion in giv()
-
         self.residual_variance = np.asarray(jl_model.residual_variance)
-        # A Symbol is an immutable, interned (i.e. pointer based) identifier while a str is char by char.
-        # e.g. Every Symbol('abc') i.e. :abc is identical as there is only one pointer pointing at all Symbol('abc')
-        # So, :abc === Symbol('abc') must be true as they share the same pointer => O(1) operation
-        # while for str in Python: 'abc' == 'abc' by comparing 'a' == 'a' , 'b' == 'b', 'c' == 'c' => O(n)
-        # ====> So, as all names has to be unique, why not store them in the memory with a much more speedy way?
-        #       (e.g. variable names, keys in Dict, function names. column names in Dataframe)
         self.responsename      = str(jl_model.responsename)
         self.endogname         = str(jl_model.endogname)
         self.endog_coefnames = [str(n) for n in jl_model.endog_coefnames]
@@ -204,13 +159,25 @@ class GIVModel:
         self.tvar              = str(jl_model.tvar)
         wv = jl_model.weightvar
         self.weightvar         = str(wv) if wv is not jl.nothing else None
-        # self.exclude_pairs     = [(p.first, p.second)
-        #                           for p in jl_model.exclude_pairs] # list of pairs (exclude_pairs::Vector{Pair})
+
         jl_dict = jl_model.exclude_pairs
-        self.exclude_pairs = {
-            int(k): [int(x) for x in jl_dict[k]]
-            for k in jl.Base.keys(jl_dict)
-        }
+        ep = {}
+        for k in jl.Base.keys(jl_dict):
+            # try int, else str
+            try:
+                kk = int(k)
+            except Exception:
+                kk = str(k)
+            # same for the values list
+            raw = jl_dict[k]
+            vals = []
+            for x in raw:
+                try:
+                    vals.append(int(x))
+                except Exception:
+                    vals.append(str(x))
+            ep[kk] = vals
+        self.exclude_pairs = ep
 
         self.converged         = bool(jl_model.converged)
         self.N                 = int(jl_model.N)
@@ -227,53 +194,12 @@ class GIVModel:
         self.residual_df = (_jf_to_pd(jl_model.residual_df)
                             if jl_model.residual_df is not jl.Base.nothing else None)
 
-        ## straightforward but always return errors so we now use a munual way instead:
-
-        # self.coefdf = jl.convert(pd.DataFrame, jl_model.coefdf)
-        # self.df = jl.convert(pd.DataFrame, jl_model.df)
-
-        # get_col = jl.seval("(df, col) -> df[!, Symbol(col)]") # similar to return df.loc[:, str(col)] in python (not copy)
-        #
-        # j_coefdf    = jl_model.coefdf
-        # j_coef_names = jl.seval("names")(j_coefdf)
-        # coefdf_dict = {
-        #     str(nm): np.asarray(get_col(j_coefdf, nm))  # Extract each column (as a Julia vector) from the DataFrame
-        #     for nm in j_coef_names
-        # }
-        # self.coefdf = pd.DataFrame(coefdf_dict)
-        #
-        # j_df = jl_model.df
-        # if j_df is not jl.nothing:
-        #     j_names = jl.seval("names")(j_df)
-        #     df_dict = {
-        #         str(nm): np.asarray(get_col(j_df, nm))
-        #         for nm in j_names
-        #     }
-        #     self.df = pd.DataFrame(df_dict)
-        # else:
-        #     self.df = None
-
-    # def coefficient_table(self) -> pd.DataFrame:
-    #     """Return the full coefficient table as DataFrame"""
-    #     return coefficient_table(self._jl_model)
 
     def coef(self):
         return np.concatenate([self.endog_coef, self.exog_coef])
 
     def coefnames(self):
         return self.endog_coefnames + self.exog_coefnames
-
-    # def endog_coefnames(self):
-    #     return self.endog_coefnames
-    #
-    # def exog_coefnames(self):
-    #     return self.exog_coefnames
-    #
-    # def endog_vcov(self):
-    #     return self.endog_vcov
-    #
-    # def exog_vcov(self):
-    #     return self.exog_vcov
 
     def vcov(self):
         n_endog = len(self.endog_coef)
@@ -334,7 +260,7 @@ class GIVModel:
         df = pd.DataFrame(
             np.column_stack([est, se, tstat, pvals, lower, upper]),
             columns=colnms,
-            index=self.coefnames,
+            index=self.coefnames(),
         )
         return df
 
@@ -353,9 +279,7 @@ def giv(
     weight: Optional[str] = None,
     **kwargs: Any, ## allows extra arguments
 ) -> GIVModel:
-    """Estimate a GIV model from pandas data."""
 
-    # jdf      = jl.DataFrame(df)
     jdf = _pd_to_jf(df)
     jformula = jl.seval(f"@formula({formula})")
     jid      = jl.Symbol(id)
@@ -367,14 +291,68 @@ def giv(
         kwargs["algorithm"] = jl.Symbol(kwargs["algorithm"])
     if isinstance(kwargs.get("save"), str):
         kwargs["save"] = jl.Symbol(kwargs["save"])
+
     if isinstance(kwargs.get("contrasts"), dict):
-        kwargs["contrasts"] = {
-            jl.Symbol(k) if isinstance(k, str) else k: v
-            for k, v in kwargs["contrasts"].items()
-        }
+        contrasts_arg = kwargs["contrasts"]
+        if contrasts_arg is not None:
+            jl_contrasts = jl.seval("Dict{Symbol, Any}()")
+
+            for k, v in contrasts_arg.items():
+                # Convert key to Julia Symbol
+                jkey = jl.Symbol(k)
+
+                # Handle string specifications
+                if isinstance(v, str):
+                    jval = jl.seval(f"StatsModels.{v}()")
+                # Handle direct Julia objects
+                elif hasattr(v, '__call__'):
+                    jval = v
+                else:
+                    raise TypeError(f"Unsupported contrast type: {type(v)}")
+
+                jl_contrasts[jkey] = jval
+
+            kwargs["contrasts"] = jl_contrasts
+        else:
+            # Create empty Julia Dict{Symbol, Any}
+            kwargs["contrasts"] = jl.seval("Dict{Symbol, Any}()")
+
     if isinstance(kwargs.get("solver_options"), dict):
-        # Turn {"ftol":1e-8, "xtol":1e-8} -> (; ftol=1e-8, xtol=1e-8)
-        kwargs["solver_options"] = jl.NamedTuple(kwargs["solver_options"])
+        py_opts = kwargs.pop("solver_options")
+        jl_opts = jl.seval("Dict{Symbol, Any}()")
+        for py_key, py_val in py_opts.items():
+            jkey = jl.Symbol(py_key)
+
+            # --- special case `method`: always a Julia Symbol ---
+            if py_key == "method":
+                if isinstance(py_val, str):
+                    jval = jl.Symbol(py_val)
+                else:
+                    jval = py_val
+
+            # --- special case `linesearch`: either a Julia object or string name ---
+            elif py_key == "linesearch":
+                if isinstance(py_val, str):
+                    # e.g. "HagerZhang" → LineSearches.HagerZhang()
+                    jval = jl.seval(f"LineSearches.{py_val}()")
+                else:
+                    # assume they already passed jl.LineSearches.HagerZhang()
+                    jval = py_val
+
+            # --- everything else (ftol, show_trace, autoscale, etc.) just passthrough ---
+            else:
+                jval = py_val
+
+            jl_opts[jkey] = jval
+
+        jl.seval("""
+            function create_namedtuple_from_dict(d::Dict{Symbol, Any})
+                return (; d...)
+            end
+        """)
+        _create_namedtuple = jl.create_namedtuple_from_dict
+
+        kwargs["solver_options"] = _create_namedtuple(jl_opts)
 
     g = kwargs.get("guess", None)
     if isinstance(g, dict):
@@ -388,51 +366,3 @@ def giv(
         kwargs["guess"] = float(g)
 
     return GIVModel(jl.giv(jdf, jformula, jid, jt, jweight, **kwargs))
-
-## e.g. :
-## kwargs = {
-##    "guess": {"group": [1, 2, 3]},
-##    "algorithm": "iv"
-## }
-## ====> **kwargs means: Unpack the kwargs dictionary and pass each key-value pair as a named argument to the Julia giv(...) function
-
-
-# ---------------------------------------------------------------------------
-# Coefficient Table Generator
-# ---------------------------------------------------------------------------
-
-## In givmodels.jl, function coeftable will only return a named tuple with 3 fields, so we have to use PrettyTables.jl to show table output in Julia
-## However, output via PrettyTables.jl is printed directly to the terminal so can't be returned as a formatted result through the API.
-## ===> So we have to manually extract named tuple output from jl_model.coeftable
-
-
-# def coefficient_table(jl_model: Any) -> pd.DataFrame:
-#     """Get full statistical summary from Julia model"""
-#
-#     ct = jl.seval("OptimalGIV.coeftable")(jl_model)
-#
-#     ## cols: list of arrays (data columns)
-#     ## colnms: column names (e.g., "Estimate")
-#     ## rownms: row labels (e.g., "group: 1")
-#
-#     cols = jl.seval("""
-#     function getcols(ct)
-#         cols = [ct.cols[i] for i in 1:length(ct.cols)]
-#         (; cols=cols, colnms=ct.colnms, rownms=ct.rownms)
-#     end
-#     """)(ct)
-#
-#     df = pd.DataFrame(
-#         np.column_stack(cols.cols), ## Combines the list of 1D arrays (e.g., estimates, std errors) into a 2D array
-#         columns=list(cols.colnms)   ## Assigns column names like "Estimate", "Std. Error", etc
-#     )
-#     if cols.rownms:                 ## If row names exist (e.g., "group: 0"), insert them as the first column in the DataFrame, called "Term"
-#         df.insert(0, "Term", list(cols.rownms))
-#
-#     if "Pr(>|t|)" in df.columns:
-#         df["Pr(>|t|)"] = df["Pr(>|t|)"].astype(float)
-#     ## In Julia, p-values might appear as strings (like "<1e-37") instead of floats
-#     ## This line forces them into float type so you can do math, sorting, filtering, etc. in Python
-#
-#     return df
-
