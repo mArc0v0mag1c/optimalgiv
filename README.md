@@ -192,8 +192,8 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
   * Required for `"scalar_search"` and `"debiased_ols"` algorithms.
 
 * `return_vcov`: Whether to compute and return the variance–covariance matrices. (default: `True`)
-* `tol`: Convergence tolerance for the solver (default: `1e-6`)
-* `iterations`: Maximum number of solver iterations (default: `100`)
+* `tol`: Convergence tolerance for the solver (: `1e-6`)
+* `iterations`: Maximum number of solver iterations (: `100`)
 
 #### Advanced keyword arguments (Optional; Use with caution)
 
@@ -215,7 +215,7 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
   The Python dict is converted to a Julia `NamedTuple` with keyword-style arguments.
   Common options include:
 
-  * `"method"`: `"newton"` , `"anderson"`, or `"trust_region"` (defaults to Newton)
+  * `"method"`: `"newton"` , `"anderson"`, `"trust_region"`, etc.
   * `"ftol"`: absolute residual tolerance
   * `"xtol"`: absolute solution tolerance
   * `"iterations"`: max iterations
