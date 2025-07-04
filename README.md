@@ -230,51 +230,6 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
   ```
 
   For the full list of options, see the [NLsolve.jl documentation](https://docs.sciml.ai/NonlinearSolve/stable/api/nlsolve/).
-
-
----
-
-### Working with Results
-
-```python
-# Methods
-model.summary()            # ▶ print full Julia-style summary
-model.residuals()          # ▶ numpy array of the residuals for each observation
-model.confint(level=0.95)  # ▶ (n×2) array of confidence intervals
-model.coeftable(level=0.95)# ▶ pandas.DataFrame of estimates, SEs, t-stats, p-values
-
-# Fields
-model.endog_coef           # ▶ numpy array of ζ coefficients
-model.exog_coef            # ▶ numpy array of β coefficients
-model.agg_coef             # ▶ float: aggregate elasticity
-model.endog_vcov           # ▶ VCOV of ζ coefficients
-model.exog_vcov            # ▶ VCOV of β coefficients
-model.nobs                 # ▶ int: number of observations
-model.dof_residual         # ▶ int: residual degrees of freedom
-model.formula              # ▶ str: Julia-style formula
-model.formula_schema       # ▶ str: the internal schema of the Julia‐style formula after parsing
-model.residual_variance    # ▶ numpy array of the estimated variance of the residuals for each entity (ûᵢ’s variance)
-model.N                    # ▶ int: the number of cross‐section entities in the panel
-model.T                    # ▶ int: the number of time periods per entity in the panel
-model.dof                  # ▶ int: the total number of estimated parameters (length of ζ plus length of β)
-model.responsename         # ▶ str: the name of the response variable(s)
-model.converged            # ▶ bool: solver convergence status
-model.endog_coefnames      # ▶ list[str]: ζ coefficient names
-model.exog_coefnames       # ▶ list[str]: β coefficient names
-model.idvar                # ▶ str: entity identifier column name
-model.tvar                 # ▶ str: time identifier column name
-model.weightvar            # ▶ str or None: weight column name
-model.exclude_pairs        # ▶ dict: excluded moment-condition pairs
-model.coefdf               # ▶ pandas.DataFrame of entity-specific coefficients
-model.fe                   # ▶ pandas.DataFrame of fixed-effects (if saved)
-model.residual_df          # ▶ pandas.DataFrame of residuals (if saved)
-model.df                   # ▶ pandas.DataFrame of full estimation output (if save_df=True)
-model.coef                 # ▶ numpy array of [ζ; β]
-model.vcov                 # ▶ full (ζ+β) variance–covariance matrix
-model.stderror             # ▶ numpy array of standard errors
-model.coefnames            # ▶ list[str]: names of all coefficients (ζ then β)
-```
-
 ---
 
 ### Algorithms
@@ -373,6 +328,49 @@ model6 = giv(
 )
 
 ```
+---
+
+### Working with Results
+
+```python
+# Methods
+model.summary()            # ▶ print full Julia-style summary
+model.residuals()          # ▶ numpy array of the residuals for each observation
+model.confint(level=0.95)  # ▶ (n×2) array of confidence intervals
+model.coeftable(level=0.95)# ▶ pandas.DataFrame of estimates, SEs, t-stats, p-values
+
+# Fields
+model.endog_coef           # ▶ numpy array of ζ coefficients
+model.exog_coef            # ▶ numpy array of β coefficients
+model.agg_coef             # ▶ float: aggregate elasticity
+model.endog_vcov           # ▶ VCOV of ζ coefficients
+model.exog_vcov            # ▶ VCOV of β coefficients
+model.nobs                 # ▶ int: number of observations
+model.dof_residual         # ▶ int: residual degrees of freedom
+model.formula              # ▶ str: Julia-style formula
+model.formula_schema       # ▶ str: the internal schema of the Julia‐style formula after parsing
+model.residual_variance    # ▶ numpy array of the estimated variance of the residuals for each entity (ûᵢ’s variance)
+model.N                    # ▶ int: the number of cross‐section entities in the panel
+model.T                    # ▶ int: the number of time periods per entity in the panel
+model.dof                  # ▶ int: the total number of estimated parameters (length of ζ plus length of β)
+model.responsename         # ▶ str: the name of the response variable(s)
+model.converged            # ▶ bool: solver convergence status
+model.endog_coefnames      # ▶ list[str]: ζ coefficient names
+model.exog_coefnames       # ▶ list[str]: β coefficient names
+model.idvar                # ▶ str: entity identifier column name
+model.tvar                 # ▶ str: time identifier column name
+model.weightvar            # ▶ str or None: weight column name
+model.exclude_pairs        # ▶ dict: excluded moment-condition pairs
+model.coefdf               # ▶ pandas.DataFrame of entity-specific coefficients
+model.fe                   # ▶ pandas.DataFrame of fixed-effects (if saved)
+model.residual_df          # ▶ pandas.DataFrame of residuals (if saved)
+model.df                   # ▶ pandas.DataFrame of full estimation output (if save_df=True)
+model.coef                 # ▶ numpy array of [ζ; β]
+model.vcov                 # ▶ full (ζ+β) variance–covariance matrix
+model.stderror             # ▶ numpy array of standard errors
+model.coefnames            # ▶ list[str]: names of all coefficients (ζ then β)
+```
+
 ---
 
 
