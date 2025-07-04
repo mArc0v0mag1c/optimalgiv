@@ -21,9 +21,9 @@ where:
 
 * $q_{i,t}$ and $p_t$ are endogenous,
 * $\mathbf{C}_{i,t}$ is a vector of controls for slopes,
-* $\mathbf{X}_{i,t}$ is a vector of controls for intercepts,
+* $\mathbf{X}_{i,t}$ is a vector of controls,
 * $\boldsymbol{\zeta}$, $\boldsymbol{\beta}$ are coefficient vectors,
-* $u_{i,t}$ is the structural residual, and
+* $u_{i,t}$ is the idiosyncratic shock, and
 * $S_{i,t}$ is the weighting variable.
 
 The equilibrium price $p_t$ is derived by imposing the market clearing condition and the model is estimated using the moment condition:
@@ -73,24 +73,16 @@ import pandas as pd
 import numpy as np
 from optimalgiv import giv
 
-# Simulate a minimal balanced panel dataset
-np.random.seed(42)
-df = pd.DataFrame({
-    "id":  np.tile([1, 2], 5),            # two entities, 5 periods
-    "t":   np.repeat(np.arange(1, 6), 2),
-    "q":   np.random.randn(10),
-    "p":   np.random.randn(10),
-    "η1":  np.random.randn(10),
-    "η2":  np.random.randn(10),
-    "absS": np.abs(np.random.randn(10)),
-})
+# Use a properly simulated dataset with 5 sectors ('id' column) and multiple periods ('t')
+df = pd.read_csv("./simdata1.csv")
+
 df['id'] = df['id'].astype('category') # ensure id interactions map to distinct groups
 
 # Define the model formula
 formula = "q + id & endog(p) ~ 0 + fe(id) + fe(id) & (η1 + η2)"
 
 # Provide an initial guess (a good guess is critical)
-guess = [2.0, 2.0]
+guess = np.ones(5)
 
 # Estimate the model
 model = giv(
@@ -107,13 +99,15 @@ model = giv(
 # View the result
 model.summary()
 
-##                       GIVModel (Average coef: 2.3)
-## ───────────────────────────────────────────────────────────────────────────
-##            Estimate  Std. Error      t-stat  Pr(>|t|)  Lower 95%  Upper 95%
-## ───────────────────────────────────────────────────────────────────────────
-## id: 1 & p  -2.53911     10.2877  -0.246811     0.8113   -26.2625    21.1843
-## id: 2 & p   6.18373     64.4392   0.0959623    0.9259  -142.413    154.781
-## ───────────────────────────────────────────────────────────────────────────
+##                     GIVModel (Aggregate coef: 2.13)                     
+## ─────────────────────────────────────────────────────────────────────────
+##            Estimate  Std. Error    t-stat  Pr(>|t|)  Lower 95%  Upper 95%
+## ─────────────────────────────────────────────────────────────────────────
+## id: 1 & p  1.00723     1.30407   0.772377    0.4405  -1.55923    3.57369
+## id: 2 & p  1.77335     0.475171  3.73204     0.0002   0.8382     2.70851
+## id: 3 & p  1.36863     0.382177  3.58114     0.0004   0.616491   2.12077
+## id: 4 & p  3.3846      0.382352  8.85207     <1e-16   2.63212    4.13709
+## id: 5 & p  0.619882    0.161687  3.83385     0.0002   0.301676   0.938087
 
 
 ```
@@ -192,30 +186,25 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
   * Required for `"scalar_search"` and `"debiased_ols"` algorithms.
 
 * `return_vcov`: Whether to compute and return the variance–covariance matrices. (default: `True`)
-* `tol`: Convergence tolerance for the solver (default: `1e-6`)
-* `iterations`: Maximum number of solver iterations (default: `100`)
+* `tol`: Convergence tolerance for the solver (: `1e-6`)
+* `iterations`: Maximum number of solver iterations (: `100`)
 
 #### Advanced keyword arguments (Optional; Use with caution)
 
-* **`contrasts`** (`Dict[str, Union[str, Any]]`)
-  Specifies encoding schemes for **categorical variables**, following Julia's `StatsModels.jl`.
-
+* **`contrasts`** (`Dict[str, Union[str, Any]]`) Specifies encoding schemes for **categorical variables**, following Julia's [`StatsModels.jl`](https://juliastats.org/StatsModels.jl/stable/contrasts/).
+  > ⚠️ **Untested at all!** — use at your own risk.
   * Keys: column names (as strings).
   * Values: either
-
     * a string like `"HelmertCoding"`, `"TreatmentCoding"` (converted automatically to `StatsModels.<X>()`), or
     * an actual Julia object like `jl.StatsModels.HelmertCoding()`
       The bridge converts this to a Julia `Dict(:id => HelmertCoding(), ...)` for use in formula parsing.
-      
-      > ⚠️ Untested — use with caution and verify the design matrix if using non-default encodings.
-      > For details see [StatsModels.jl contrasts](https://juliastats.org/StatsModels.jl/stable/contrasts/).
 
 * **`solver_options`** (`Dict[str, Any]`)
   Extra options passed to the nonlinear system solver from [`NLsolve.jl`](https://github.com/JuliaNLSolvers/NLsolve.jl).
   The Python dict is converted to a Julia `NamedTuple` with keyword-style arguments.
   Common options include:
 
-  * `"method"`: `"newton"` , `"anderson"`, or `"trust_region"` (defaults to Newton)
+  * `"method"`: `"newton"` , `"anderson"`, `"trust_region"`, etc.
   * `"ftol"`: absolute residual tolerance
   * `"xtol"`: absolute solution tolerance
   * `"iterations"`: max iterations
@@ -247,18 +236,12 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
 
 ### Working with Results
 
-The output is a `GIVModel` object with rich methods and fields:
-
 ```python
 # Methods
 model.summary()            # ▶ print full Julia-style summary
-model.coef()               # ▶ numpy array of [ζ; β]
-model.vcov()               # ▶ full (ζ+β) variance–covariance matrix
-model.stderror()           # ▶ numpy array of standard errors
+model.residuals()          # ▶ numpy array of the residuals for each observation
 model.confint(level=0.95)  # ▶ (n×2) array of confidence intervals
 model.coeftable(level=0.95)# ▶ pandas.DataFrame of estimates, SEs, t-stats, p-values
-model.coefnames()          # ▶ list[str]: names of all coefficients (ζ then β)
-model.residuals()          # ▶ numpy array of the residuals for each observation
 
 # Fields
 model.endog_coef           # ▶ numpy array of ζ coefficients
@@ -286,6 +269,10 @@ model.coefdf               # ▶ pandas.DataFrame of entity-specific coefficient
 model.fe                   # ▶ pandas.DataFrame of fixed-effects (if saved)
 model.residual_df          # ▶ pandas.DataFrame of residuals (if saved)
 model.df                   # ▶ pandas.DataFrame of full estimation output (if save_df=True)
+model.coef                 # ▶ numpy array of [ζ; β]
+model.vcov                 # ▶ full (ζ+β) variance–covariance matrix
+model.stderror             # ▶ numpy array of standard errors
+model.coefnames            # ▶ list[str]: names of all coefficients (ζ then β)
 ```
 
 ---
@@ -321,7 +308,7 @@ The package implements four algorithms for GIV estimation:
 
 ### Initial Guesses
 
-A good guess is key to stable estimation. If omitted, OLS‐based defaults may always fail. Examples:
+A good guess is key to stable estimation. If omitted, OLS‐based defaults will typically fail. Examples:
 
 ```python
 import numpy as np
