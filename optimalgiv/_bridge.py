@@ -194,19 +194,31 @@ class GIVModel:
         self.residual_df = (_jf_to_pd(jl_model.residual_df)
                             if jl_model.residual_df is not jl.Base.nothing else None)
 
+        self.coef = np.concatenate([self.endog_coef, self.exog_coef])
+        self.coefnames = self.endog_coefnames + self.exog_coefnames
 
-    def coef(self):
-        return np.concatenate([self.endog_coef, self.exog_coef])
-
-    def coefnames(self):
-        return self.endog_coefnames + self.exog_coefnames
-
-    def vcov(self):
         n_endog = len(self.endog_coef)
         n_exog = len(self.exog_coef)
         top = np.hstack([self.endog_vcov, np.full((n_endog, n_exog), np.nan)])
         bottom = np.hstack([np.full((n_exog, n_endog), np.nan), self.exog_vcov])
-        return np.vstack([top, bottom])
+        self.vcov = np.vstack([top, bottom])
+
+        se_endog = np.sqrt(np.diag(self.endog_vcov))
+        se_exog = np.sqrt(np.diag(self.exog_vcov))
+        self.stderror = np.concatenate([se_endog, se_exog])
+
+    # def coef(self):
+    #     return np.concatenate([self.endog_coef, self.exog_coef])
+    #
+    # def coefnames(self):
+    #     return self.endog_coefnames + self.exog_coefnames
+    #
+    # def vcov(self):
+    #     n_endog = len(self.endog_coef)
+    #     n_exog = len(self.exog_coef)
+    #     top = np.hstack([self.endog_vcov, np.full((n_endog, n_exog), np.nan)])
+    #     bottom = np.hstack([np.full((n_exog, n_endog), np.nan), self.exog_vcov])
+    #     return np.vstack([top, bottom])
 
     def confint(self, level=0.95):
         """
@@ -216,11 +228,11 @@ class GIVModel:
             jl.StatsAPI.confint(self._jl_model, level=level)
         )
 
-    def stderror(self):
-        se_endog = np.sqrt(np.diag(self.endog_vcov))
-        se_exog = np.sqrt(np.diag(self.exog_vcov))
-        return np.concatenate([se_endog, se_exog])
-
+    # def stderror(self):
+    #     se_endog = np.sqrt(np.diag(self.endog_vcov))
+    #     se_exog = np.sqrt(np.diag(self.exog_vcov))
+    #     return np.concatenate([se_endog, se_exog])
+    #
     def residuals(self):
         """
         Raw residual vector (NumPy 1-D). Requires the model to have been
