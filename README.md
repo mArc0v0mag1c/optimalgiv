@@ -46,7 +46,15 @@ og.update_packages()
 
 The Granular Instrumental Variables (GIV) model estimated by this package follows the specification:
 
-<img width="773" alt="image" src="https://github.com/user-attachments/assets/e3b8797a-de2d-4502-ae2a-d5d2528eda44" />
+```math
+\begin{aligned}
+\left.\begin{array}{c}
+\begin{array}{cl}
+q_{i,t} & =-p_{t}\times\mathbf{C}_{i,t}'\boldsymbol{\zeta}+\mathbf{X}_{i,t}'\boldsymbol{\beta}+u_{i,t},\\
+0 & =\sum_{i}S_{i,t}q_{i,t}
+\end{array}\end{array}\right\} \implies & p_{t}=\frac{1}{\mathbf{C}_{S,t}'\boldsymbol{\zeta}}\left[\mathbf{X}_{S,t}'\boldsymbol{\beta}+u_{S,t}\right],
+\end{aligned}
+```
 
 
 where:
