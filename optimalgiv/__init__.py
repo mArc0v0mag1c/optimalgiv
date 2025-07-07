@@ -3,48 +3,86 @@ import sys
 import pathlib
 from juliacall import Main as jl
 
-# Guard to prevent re-initialization
-if not hasattr(sys, "_julia_env_initialized"):
-    # 1) Set project directory
-    _pkg_dir = pathlib.Path(__file__).parent.resolve()
-    os.environ["PYTHON_JULIAPKG_PROJECT"] = str(_pkg_dir)
+################################################################################
+#  SPEED-OPTIMISED JULIA ENV BOOTSTRAP
+#
+#  – First run  : installs + precompiles all deps, then drops a “sentinel” file
+#  – Later runs : skips installs/update/precompile and just `instantiate`s
+#  – Optional   : set env OPTIMALGIV_FORCE_SETUP=1 to force a fresh rebuild
+################################################################################
 
-    # 2) Activate and set up environment
+if not hasattr(sys, "_julia_env_initialized"):
+    _pkg_dir = pathlib.Path(__file__).parent.resolve()         # project folder
+    os.environ["PYTHON_JULIAPKG_PROJECT"] = str(_pkg_dir)
+    sentinel = _pkg_dir / ".optimalgiv_setup_complete"         # touch() on success
+    force    = os.getenv("OPTIMALGIV_FORCE_SETUP") == "1"
+
     jl.seval("import Pkg")
     jl.seval(f'Pkg.activate("{_pkg_dir}")')
 
-    # 3) Add required registries
-    jl.seval('Pkg.Registry.add("General")')
+    # -------------------------------------------------------------------------
+    # Decide whether we need a *full* setup or the quick path
+    # -------------------------------------------------------------------------
+    need_full_setup = force or not sentinel.exists()
 
-    # 4) Install and load packages directly
-    packages = [
-        ("PythonCall", "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"),
-        ("OptimalGIV", "bf339e5b-51e6-4b7b-82b3-758165633231"),
-        ("DataFrames", "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"),
-        ("StatsModels", "3eaba693-59b7-5ba5-a881-562e759f1c8d"),
-        ("CategoricalArrays", "324d7699-5711-5eae-9e2f-1d82baa6b597"),
-        ('StatsFuns', "4c63d2b9-4356-54db-8cca-17b64c39e42c"),
-        ('LineSearches', "d3d80556-e9d4-5f37-9878-2ab0fcc64255")
-        #("Tables", "bd369af6-aec1-5ad0-b16a-f7cc5008161c")
-    ]
+    if need_full_setup:
+        # Make sure the General registry exists (cheap if it already does)
+        jl.seval('Pkg.Registry.add("General")')
 
-    # Install packages using UUIDs
-    for name, uuid in packages:
-        jl.seval(f'Pkg.add(name="{name}", uuid="{uuid}")')
+        jl.seval(
+            '''
+            import Pkg
+            Pkg.add(Pkg.PackageSpec(
+                url = "https://github.com/FuZhiyu/OptimalGIV.jl",
+                rev = "gkgiv"               # branch, tag, or commit SHA
+            ))
+            '''
+        )
+        # Add ONLY missing packages (skips the network if already present)
+        pkgs = [
+            ("PythonCall",  "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"),
+            # ("OptimalGIV",  "bf339e5b-51e6-4b7b-82b3-758165633231"),
+            ("DataFrames",  "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"),
+            ("StatsModels", "3eaba693-59b7-5ba5-a881-562e759f1c8d"),
+            ("CategoricalArrays","324d7699-5711-5eae-9e2f-1d82baa6b597"),
+            ("StatsFuns",   "4c63d2b9-4356-54db-8cca-17b64c39e42c"),
+            ("LineSearches","d3d80556-e9d4-5f37-9878-2ab0fcc64255"),
+        ]
+        jl.packages_to_add = pkgs   # hand it over once
+        jl.seval("""
+        pkgs_to_add = packages_to_add   # pulled from Python
+        installed  = keys(Pkg.dependencies())
+        for (name, uuid) in pkgs_to_add
+            if !(name in installed)
+                Pkg.add(name=name, uuid=uuid)
+            end
+        end
+        """)
 
-    # 5) Update, instantiate, and precompile packages
-    jl.seval("Pkg.Registry.update()")
-    jl.seval("Pkg.update()")
-    jl.seval("Pkg.instantiate()")
-    jl.seval("Pkg.precompile()")
+        # Resolve/instantiate & precompile once
+        jl.seval("Pkg.instantiate()")
+        jl.seval("Pkg.precompile()")
 
-    # 6) Load packages
-    jl.seval("using PythonCall, OptimalGIV, DataFrames, StatsModels, CategoricalArrays, StatsFuns, LineSearches")
+        # Mark success
+        sentinel.touch()
 
+    else:
+        # Fast path: trust Manifest, just ensure deps exist
+        jl.seval("Pkg.instantiate()")
+
+    # -------------------------------------------------------------------------
+    # Finally, load the packages we need in this session
+    # -------------------------------------------------------------------------
+    jl.seval("using PythonCall, OptimalGIV, DataFrames, StatsModels, "
+             "CategoricalArrays, StatsFuns, LineSearches")
+
+    # Cache flag for rest of Python process
     sys._julia_env_initialized = True
+
 
 from ._bridge import giv, GIVModel
 from ._simulate import simulate_data, SimParam
+from ._env_tools import update_packages
 
-__all__ = ["simulate_data", "SimParam", "giv", "GIVModel"]
-__version__ = "0.1.9"
+__all__ = ["simulate_data", "SimParam", "giv", "GIVModel", "update_packages"]
+__version__ = "0.2.0"
