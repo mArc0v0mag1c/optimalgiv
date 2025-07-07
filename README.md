@@ -10,11 +10,51 @@ Julia is automatically installed and all dependencies are resolved without manua
 
 ---
 
+## Installation
+
+```python
+pip install optimalgiv
+```
+
+### First import
+
+The first time you run:
+
+```python
+import optimalgiv
+```
+
+it will:
+
+1. **Install Julia** (if not present; ≈ 1-2 min),
+2. **Set up a Julia environment** with `OptimalGIV.jl` and **precompile** (≈ 2–4 min).
+
+Later imports will be much faster (≈ 6–10 s), which is typical for Julia project activation—the environment is compiled once and then reused.
+
+> **Note for existing Julia users or if you want to update after some time:**
+
+```python
+## To update Julia packages, run:
+
+import optimalgiv as og
+og.update_packages()
+```
+
+---
+
 ## Model Specification
 
 The Granular Instrumental Variables (GIV) model estimated by this package follows the specification:
 
-<img width="773" alt="image" src="https://github.com/user-attachments/assets/e3b8797a-de2d-4502-ae2a-d5d2528eda44" />
+```math
+\begin{aligned}
+\left.\begin{array}{c}
+\begin{array}{cl}
+q_{i,t} & =-p_{t}\times\mathbf{C}_{i,t}'\boldsymbol{\zeta}+\mathbf{X}_{i,t}'\boldsymbol{\beta}+u_{i,t},\\
+0 & =\sum_{i}S_{i,t}q_{i,t}
+\end{array}\end{array}\right\} \implies & p_{t}=\frac{1}{\mathbf{C}_{S,t}'\boldsymbol{\zeta}}\left[\mathbf{X}_{S,t}'\boldsymbol{\beta}+u_{S,t}\right],
+\end{aligned}
+```
 
 
 where:
@@ -47,20 +87,6 @@ $$
 must hold exactly **within the sample**. This ensures internal consistency of the equilibrium condition. 
 
 If the adding-up constraint is not satisfied, the model will adjust accordingly, but **the interpretation of estimated coefficients should be made with caution**, as residual market imbalances may bias elasticities and standard errors. (See the `complete_coverage` argument below for details.)
-
----
-
-## Installation
-
-```bash
-pip install optimalgiv
-````
-
-On first importing, `optimalgiv` will automatically:
-
-* Install Julia (if not already available)
-* Install `OptimalGIV.jl` and supporting packages
-* Precompile and create a self-contained Julia environment
 
 ---
 
