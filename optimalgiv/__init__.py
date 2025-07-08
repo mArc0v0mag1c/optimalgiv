@@ -34,10 +34,20 @@ if not hasattr(sys, "_julia_env_initialized"):
             import Pkg
             Pkg.add(Pkg.PackageSpec(
                 url = "https://github.com/FuZhiyu/OptimalGIV.jl",
-                rev = "gkgiv"               # branch, tag, or commit SHA
+                rev = "main"
             ))
             '''
         )
+
+        jl.seval(
+            '''
+            import Pkg
+            Pkg.add(Pkg.PackageSpec(
+                url = "https://github.com/FuZhiyu/HeteroPCA.jl"
+            ))
+            '''
+        )
+
         # Add ONLY missing packages (skips the network if already present)
         pkgs = [
             ("PythonCall",  "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"),
@@ -74,7 +84,7 @@ if not hasattr(sys, "_julia_env_initialized"):
     # Finally, load the packages we need in this session
     # -------------------------------------------------------------------------
     jl.seval("using PythonCall, OptimalGIV, DataFrames, StatsModels, "
-             "CategoricalArrays, StatsFuns, LineSearches")
+             "CategoricalArrays, StatsFuns, LineSearches, HeteroPCA")
 
     # Cache flag for rest of Python process
     sys._julia_env_initialized = True
@@ -83,6 +93,7 @@ if not hasattr(sys, "_julia_env_initialized"):
 from ._bridge import giv, GIVModel
 from ._simulation import simulate_data, SimParam
 from ._env_tools import update_packages
+from ._pca import HeteroPCAModel
 
-__all__ = ["simulate_data", "SimParam", "giv", "GIVModel", "update_packages"]
+__all__ = ["simulate_data", "SimParam", "giv", "GIVModel", "update_packages", "HeteroPCAModel"]
 __version__ = "0.2.0"
