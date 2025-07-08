@@ -81,7 +81,7 @@ if not hasattr(sys, "_julia_env_initialized"):
 
 
 from ._bridge import giv, GIVModel
-from ._simulate import simulate_data, SimParam
+from ._simulation import simulate_data, SimParam
 from ._env_tools import update_packages
 
 __all__ = ["simulate_data", "SimParam", "giv", "GIVModel", "update_packages"]
