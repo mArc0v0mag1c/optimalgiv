@@ -191,9 +191,12 @@ def test_pca_deflated_pairwise():
             algorithm="DeflatedHeteroPCA",
             algorithm_options={
                 "t_block": 5,
-                "condition_number_threshold": 3.5
+                "condition_number_threshold": 3.5,
             },
-            demean=False
+            demean=False,
+            α = 1.0,
+            suppress_warnings = False,
+            abstol = 1e-6,
         ),
         save="all", save_df=True, quiet=True
     )
