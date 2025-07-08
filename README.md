@@ -214,6 +214,11 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
 * `return_vcov`: Whether to compute and return the variance–covariance matrices. (default: `True`)
 * `tol`: Convergence tolerance for the solver (: `1e-6`)
 * `iterations`: Maximum number of solver iterations (: `100`)
+* `pca_option`: Dictionary of options for PC extraction when using `pc(k)` in formula:
+  * `'algorithm'`: HeteroPCA algorithm - `DeflatedHeteroPCA`, `'StandardHeteroPCA'`, or `'DiagonalDeletion'`
+  * `'impute_method'`: `'zero'` or `'pairwise'` for handling missing values (default: `'zero'`)
+  * `'demean'`: Whether to demean data before PCA (default: `False`)
+  * `'maxiter'`: Maximum iterations for PCA algorithm (default: `100`)
 
 #### Advanced keyword arguments (Optional; Use with caution)
 
