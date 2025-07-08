@@ -194,7 +194,7 @@ giv(df, formula: str, id: str, t: str, weight: str, **kwargs) -> GIVModel
 * `algorithm`: One of `"iv"` (default), `"iv_twopass"`, `"debiased_ols"`, or `"scalar_search"`.
 * `guess`: Initial guess for ζ coefficients. (See below for usage details)
 * `exclude_pairs`: Dictionary excluding pairs from moment conditions.
-  Example: `{1: [2, 3], 4: [5]}` excludes (1,2), (1,3), and (4,5).
+    * Example: `{1: [2, 3], 4: [5]}` excludes entity pair with code (1,2), (1,3), and (4,5) from the moment conditions entering the estimation. 
 * `quiet`: Set `True` to suppress warnings and info messages.
 * `save`: `"none"` (default), `"residuals"`, `"fe"`, or `"all"` — controls what is stored on the returned model:
 
@@ -465,7 +465,7 @@ model.pc_factors           # ▶ numpy array (k×T) of PC time factors (if pc(k)
 model.pc_loadings          # ▶ numpy array (N×k) of PC entity loadings (if pc(k) used)
 model.pc_model             # ▶ HeteroPCAModel object with PC details (if pc(k) used)
 model.coefdf               # ▶ pandas.DataFrame of entity-specific coefficients
-model.fe                   # ▶ pandas.DataFrame of fixed-effects (if saved)
+model.fe                   # ▶ pandas.DataFrame of fixed-effects (if saved) and fixed-effect interaction with exogenous controls
 model.residual_df          # ▶ pandas.DataFrame of residuals (if saved)
 model.df                   # ▶ pandas.DataFrame of full estimation output (if save_df=True)
 model.coef                 # ▶ numpy array of [ζ; β]
