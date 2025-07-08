@@ -356,6 +356,79 @@ model6 = giv(
 ```
 ---
 
+### Principal Components (PC) in Formulas
+
+The package supports extracting principal components from residuals to capture unobserved factors:
+
+```python
+# Add pc(k) to the formula to extract k principal components
+model = giv(
+    df,
+    "q + id & endog(p) ~ X + pc(2)",  # Extract 2 PCs from residuals
+    id="id", t="t", weight="S",
+    save_df=True  # Needed to access PC factors/loadings in df
+)
+
+# Access PC results
+model.n_pcs          # Number of PCs extracted
+model.pc_factors     # k×T matrix of time factors
+model.pc_loadings    # N×k matrix of entity loadings
+model.pc_model       # HeteroPCAModel object with details
+```
+
+#### PCA Options
+
+You can customize the PC extraction algorithm using the `pca_option` parameter:
+
+```python
+# Example with custom PCA options
+model = giv(
+    df,
+    "q + id & endog(p) ~ X + pc(3)",
+    id="id", t="t", weight="S",
+    pca_option={
+        # Preferred: let the wrapper build the constructor for you
+        'algorithm': 'DeflatedHeteroPCA',
+        'algorithm_options': dict(
+            t_block=20,
+            condition_number_threshold=5.0,
+        ),
+
+        # If you already have the Julia object, you can pass it instead:
+        # 'algorithm': jl.HeteroPCA.DeflatedHeteroPCA(
+        #                 t_block=20,
+        #                 condition_number_threshold=5.0,
+        #             ),
+
+        'impute_method': 'zero',   # auto-converted to :zero
+        'demean': False,
+        'maxiter': 200,
+    }
+)
+
+# Alternative: use string specification
+model = giv(
+    df,
+    "q + id & endog(p) ~ X + pc(2)",
+    id="id", t="t", weight="S",
+    pca_option={
+        'algorithm': 'StandardHeteroPCA',  # or 'DiagonalDeletion'
+        'impute_method': 'pairwise',
+        'demean': True
+    }
+)
+```
+
+Available algorithms:
+- `'algorithm': 'DeflatedHeteroPCA','algorithm_options': {'t_block': 10, 'condition_number_threshold': 4.0}`: Deflated algorithm with adaptive block sizing
+- `'algorithm': 'StandardHeteroPCA'`: Standard iterative algorithm
+- `'algorithm': 'DiagonalDeletion'`: Single-step diagonal deletion method
+
+When `save_df=True`, PC factors and loadings are added to the saved dataframe with columns like `pc_factor_1`, `pc_factor_2`, `pc_loading_1`, etc.
+
+---
+
+
 ### Working with Results
 
 ```python
@@ -387,6 +460,10 @@ model.idvar                # ▶ str: entity identifier column name
 model.tvar                 # ▶ str: time identifier column name
 model.weightvar            # ▶ str or None: weight column name
 model.exclude_pairs        # ▶ dict: excluded moment-condition pairs
+model.n_pcs                # ▶ int: number of principal components extracted
+model.pc_factors           # ▶ numpy array (k×T) of PC time factors (if pc(k) used)
+model.pc_loadings          # ▶ numpy array (N×k) of PC entity loadings (if pc(k) used)
+model.pc_model             # ▶ HeteroPCAModel object with PC details (if pc(k) used)
 model.coefdf               # ▶ pandas.DataFrame of entity-specific coefficients
 model.fe                   # ▶ pandas.DataFrame of fixed-effects (if saved)
 model.residual_df          # ▶ pandas.DataFrame of residuals (if saved)
