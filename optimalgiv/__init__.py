@@ -1,6 +1,21 @@
 import os
 import sys
 import pathlib
+import warnings
+
+#------------------------------------------------------------------
+# Default to 1 Julia thread unless the caller set it explicitly
+#------------------------------------------------------------------
+os.environ.setdefault("JULIA_NUM_THREADS", "1")
+
+if int(os.getenv("JULIA_NUM_THREADS")) > 1:
+    warnings.warn(
+        "OptimalGIV is more stable on a single Julia thread. "
+        "You have JULIA_NUM_THREADS="
+        + os.environ["JULIA_NUM_THREADS"]
+        + ".  If you see segfaults, rerun with 1."
+    )
+
 from juliacall import Main as jl
 
 ################################################################################
