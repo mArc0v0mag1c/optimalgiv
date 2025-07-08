@@ -14,6 +14,7 @@ from typing import Any, Optional
 from juliacall import Main as jl, AnyValue
 from pandas.api.types import CategoricalDtype
 import math
+from ._pca import HeteroPCAModel
 
 
 # ---------------------------------------------------------------------
@@ -207,6 +208,32 @@ class GIVModel:
         se_exog = np.sqrt(np.diag(self.exog_vcov))
         self.stderror = np.concatenate([se_endog, se_exog])
 
+    # def coef(self):
+    #     return np.concatenate([self.endog_coef, self.exog_coef])
+    #
+    # def coefnames(self):
+    #     return self.endog_coefnames + self.exog_coefnames
+    #
+    # def vcov(self):
+    #     n_endog = len(self.endog_coef)
+    #     n_exog = len(self.exog_coef)
+    #     top = np.hstack([self.endog_vcov, np.full((n_endog, n_exog), np.nan)])
+    #     bottom = np.hstack([np.full((n_exog, n_endog), np.nan), self.exog_vcov])
+    #     return np.vstack([top, bottom])
+
+        ## PC extras
+        self.n_pcs = int(jl_model.n_pcs)
+        self.pc_factors = (
+            np.asarray(jl_model.pc_factors) if self.n_pcs else None
+        )
+        self.pc_loadings = (
+            np.asarray(jl_model.pc_loadings) if self.n_pcs else None
+        )
+        self.pc_model = (
+            HeteroPCAModel(jl_model.pc_model) if self.n_pcs else None
+        )
+
+
     def confint(self, level=0.95):
         """
         (n×2) NumPy array of confidence intervals at the requested level.
@@ -215,6 +242,11 @@ class GIVModel:
             jl.StatsAPI.confint(self._jl_model, level=level)
         )
 
+    # def stderror(self):
+    #     se_endog = np.sqrt(np.diag(self.endog_vcov))
+    #     se_exog = np.sqrt(np.diag(self.exog_vcov))
+    #     return np.concatenate([se_endog, se_exog])
+    #
     def residuals(self):
         """
         Raw residual vector (NumPy 1-D). Requires the model to have been
@@ -231,8 +263,8 @@ class GIVModel:
         """
         Return a pandas.DataFrame equivalent to Julia’s `StatsAPI.coeftable`.
         """
-        est = self.coef()
-        se = self.stderror()
+        est = self.coef
+        se = self.stderror
         tstat = est / se
         dof = self.dof_residual
 
@@ -254,7 +286,7 @@ class GIVModel:
         df = pd.DataFrame(
             np.column_stack([est, se, tstat, pvals, lower, upper]),
             columns=colnms,
-            index=self.coefnames(),
+            index=self.coefnames,
         )
         return df
 
@@ -311,12 +343,27 @@ def giv(
             # Create empty Julia Dict{Symbol, Any}
             kwargs["contrasts"] = jl.seval("Dict{Symbol, Any}()")
 
+    jl.seval("""
+            function create_namedtuple_from_dict(d::Dict{Symbol, Any})
+                return (; d...)
+            end
+        """)
+    _create_namedtuple = jl.create_namedtuple_from_dict
+
     if isinstance(kwargs.get("solver_options"), dict):
         py_opts = kwargs.pop("solver_options")
         jl_opts = jl.seval("Dict{Symbol, Any}()")
         for py_key, py_val in py_opts.items():
             jkey = jl.Symbol(py_key)
 
+            # --- special case `method`: always a Julia Symbol ---
+            # if py_key == "method" or py_key == 'autodiff':
+            #     if isinstance(py_val, str):
+            #         jval = jl.Symbol(py_val)
+            #     else:
+            #         jval = py_val
+
+            # --- special case `linesearch`: either a Julia object or string name ---
             if py_key == "linesearch":
                 if isinstance(py_val, str):
                     # e.g. "HagerZhang" → LineSearches.HagerZhang()
@@ -328,28 +375,76 @@ def giv(
             elif isinstance(py_val, str):
                 jval = jl.Symbol(py_val)
 
+            # --- everything else (ftol, show_trace, autoscale, etc.) just passthrough ---
             else:
                 jval = py_val
 
             jl_opts[jkey] = jval
 
-        jl.seval("""
-            function create_namedtuple_from_dict(d::Dict{Symbol, Any})
-                return (; d...)
-            end
-        """)
         _create_namedtuple = jl.create_namedtuple_from_dict
 
         kwargs["solver_options"] = _create_namedtuple(jl_opts)
+
+    if isinstance(kwargs.get("pca_option"), dict):
+        py_pca = kwargs.pop("pca_option")
+        jl_pca = jl.seval("Dict{Symbol, Any}()")
+
+        for py_key, py_val in list(py_pca.items()):
+            jkey = jl.Symbol(py_key)
+
+            # -----------------------------------------------------------
+            # special case: build HeteroPCA algorithm object
+            # -----------------------------------------------------------
+            if py_key == "algorithm" and isinstance(py_val, str):
+                algo_name = py_val  # "DeflatedHeteroPCA"
+                algo_kw_py = py_pca.get("algorithm_options", {})
+
+                # build Dict{Symbol,Any} with kwargs
+                jl_algo_kw = jl.seval("Dict{Symbol, Any}()")
+                for akey, aval in algo_kw_py.items():
+                    jl_algo_kw[jl.Symbol(akey)] = (
+                        jl.Symbol(aval) if isinstance(aval, str) else aval
+                    )
+
+                jl_algo_kw_nt = jl.create_namedtuple_from_dict(jl_algo_kw)
+
+                # splat NamedTuple inside Julia (helper defined once)
+                if not hasattr(jl, "_giv_apply_kw"):
+                    jl.seval("""
+                        _giv_apply_kw(f, nt::NamedTuple) = f(; nt...)
+                    """)
+                algo_ctor = getattr(jl.HeteroPCA, algo_name)
+                jval = jl._giv_apply_kw(algo_ctor, jl_algo_kw_nt)
+
+            # -----------------------------------------------------------
+            # ordinary coercions
+            # -----------------------------------------------------------
+            elif py_key == "impute_method" and isinstance(py_val, str):
+                jval = jl.Symbol(py_val)
+
+            elif isinstance(py_val, str):
+                jval = jl.Symbol(py_val)
+
+            else:
+                jval = py_val
+
+            jl_pca[jkey] = jval
+
+        # ---------------------------------------------------------------
+        # Convert outer Dict -> NamedTuple and stash back into kwargs
+        # ---------------------------------------------------------------
+        jl_pca.pop(jl.Symbol("algorithm_options"), None)
+        kwargs["pca_option"] = jl.create_namedtuple_from_dict(jl_pca)
 
     g = kwargs.get("guess", None)
     if isinstance(g, dict):
         kwargs["guess"] = _py_to_julia_guess(g)
     elif isinstance(g, (list, tuple, np.ndarray)):
+        # Julia expects Vector{Float64}
         kwargs["guess"] = jl.seval("Vector{Float64}")([float(x) for x in g])
     elif g is None:
-        pass
-    else:
+        pass  # let Julia fall back to its default heuristics
+    else:  # scalar number
         kwargs["guess"] = float(g)
 
     return GIVModel(jl.giv(jdf, jformula, jid, jt, jweight, **kwargs))
