@@ -1,4 +1,4 @@
-# python3 -m pytest -p no:faulthandler tests/test_pca_accuracy.py -v
+# python3 -m pytest -p no:faulthandler tests/test_pca_interface.py -v
 
 import pytest
 import pathlib
