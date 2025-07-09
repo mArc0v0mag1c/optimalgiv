@@ -465,7 +465,7 @@ model.pc_factors           # ▶ numpy array (k×T) of PC time factors (if pc(k)
 model.pc_loadings          # ▶ numpy array (N×k) of PC entity loadings (if pc(k) used)
 model.pc_model             # ▶ HeteroPCAModel object with PC details (if pc(k) used)
 model.coefdf               # ▶ pandas.DataFrame of entity-specific coefficients
-model.fe                   # ▶ pandas.DataFrame of fixed-effects (if saved) and fixed-effect interaction with exogenous controls
+model.fe                   # ▶ pandas.DataFrame of fixed-effects and fixed-effect interaction with exogenous controls (if saved) 
 model.residual_df          # ▶ pandas.DataFrame of residuals (if saved)
 model.df                   # ▶ pandas.DataFrame of full estimation output (if save_df=True)
 model.coef                 # ▶ numpy array of [ζ; β]
@@ -473,7 +473,26 @@ model.vcov                 # ▶ full (ζ+β) variance–covariance matrix
 model.stderror             # ▶ numpy array of standard errors
 model.coefnames            # ▶ list[str]: names of all coefficients (ζ then β)
 ```
+#### Entity-specific Coefficients DataFrame (coefdf)
+The `model.coefdf` field provides a convenient way to access and report coefficients organized by categorical variables (e.g., by sector, entity, or other groupings). This DataFrame contains:
 
+* All categorical variable values used in the model (e.g., entity IDs, sectors)
+* Estimated coefficients for each term in the formula, stored in columns named `<term>_coef`
+* Fixed effect estimates and fixed effect interaction with exogenous controls(if `save = 'fe'` or `save = 'all'` was specified)
+
+Example:
+```python
+
+# Using the estimated model above as an example
+print(model.coefdf)
+# id  id & p_coef     fe_id  fe_id&η1  fe_id&η2
+# 1     1.007234  0.770445 -0.075198  0.905689
+# 2     1.773353 -0.376699  0.452851  0.825657
+# 3     1.368630 -0.827939 -1.033757 -0.512825
+# 4     3.384603 -0.275443  1.348865   1.37676
+# 5     0.619882 -0.419348  0.663217  1.108182
+
+```
 ---
 
 
