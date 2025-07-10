@@ -90,6 +90,21 @@ If the adding-up constraint is not satisfied, the model will adjust accordingly,
 
 ---
 
+### Internal PC
+
+Internal PC extractions are supported. With internal PCs, the moment conditions become:
+
+$$
+\mathbb E[u_{i,t}u_{j,t}] = \Lambda \Lambda'
+$$
+
+where $\Lambda$ is the factor loadings estimated internally using [HeteroPCA.jl](https://github.com/FuZhiyu/HeteroPCA.jl) from $u_{i,t}(z) \equiv q_{i,t} + p_{t}\times\mathbf{C}_{i,t}'\boldsymbol{z}$ at each guess of $z$. 
+
+However, with small samples, the exactly root solving the moment condition may not exist, and users may want to use an minimizer to minimize the error instead. Also, be noted that a model with fully flexible elasticity specification and fully flexible factor loadings is not theoretically identifiable. 
+
+
+---
+
 ## Usage
 
 ### Basic Example
@@ -499,7 +514,93 @@ print(model.coefdf)
 
 ```
 ---
+## Simulation
+The package includes utilities for Monte Carlo simulations using the `simulate_data` function:
 
+```python
+from optimalgiv import simulate_data, SimParam
+
+# Generate simulated panel datasets
+simulated_dfs = simulate_data(
+    params = SimParam(
+        N=20,      # Number of entities
+        T=50,      # Time periods
+        K=3,       # Number of factors
+        M=0.7,     # Aggregate elasticity
+        sigma_zeta=0.5  # Elasticity dispersion
+    ),
+    nsims=1,      # Number of simulations
+    seed=123      # Random seed
+)
+
+# Use the first dataset
+df = simulated_dfs[0]
+```
+
+### Simulation Parameters
+The `SimParam` class accepts the following parameters:
+
+| Parameter     | Description | Default |
+|---------------|-------------|---------|
+| `N`           | Number of entities | 10 |
+| `T`           | Number of time periods | 100 |
+| `K`           | Number of common factors | 2 |
+| `M`           | Aggregate price elasticity | 0.5 |
+| `sigma_zeta`  | Standard deviation of entity elasticities | 1.0 |
+| `sigma_p`     | Price volatility to target | 2.0 |
+| `h`           | Excess HHI for size distribution | 0.2 |
+| `ushare`      | Share of price variation from idiosyncratic shocks | 0.2 (if K>0) |
+| `sigma_u_curv`| Curvature for size-dependent volatility | 0.1 |
+| `nu`          | Degrees of freedom for t-distribution (Inf = Normal) | np.inf |
+| `missingperc` | Percentage of missing values | 0.0 |
+
+### Data Generating Process
+The simulated data follows this economic model:
+
+```math
+\begin{align}
+q_{it} &= u_{it} + \Lambda_i \cdot \eta_t - \zeta_i \cdot p_t \\
+p_t &= M \cdot \sum_i S_i \cdot (u_{it} + \Lambda_i \cdot \eta_t)
+\end{align}
+```
+
+Where:
+- `q_it`: Quantity for entity i at time t
+- `p_t`: Price (common across entities at time t)
+- `u_it`: Idiosyncratic shocks
+- `η_t`: Common factors
+- `Λ_i`: Factor loadings
+- `ζ_i`: Entity-specific elasticities
+- `S_i`: Entity size/weights
+
+Entity sizes follow a power law distribution calibrated to match the target excess HHI (`h`).
+
+### Output DataFrame
+Each simulation returns a pandas DataFrame with columns:
+- `id`: Entity identifier
+- `t`: Time period
+- `q`: Quantity (response variable)
+- `p`: Price (endogenous regressor)
+- `S`: Entity size/weight
+- `ζ`: True entity-specific elasticity
+- `η1, η2, ...`: Common factor realizations
+- `λ1, λ2, ...`: Entity-specific factor loadings
+
+---
+
+## Limitations
+- **PC extraction limitations**: Only `iv` and `iv_twopass` algorithms support internal PC extraction. The `debiased_ols` and `scalar_search` algorithms do not support PC extraction.
+- **Variance-covariance matrix**: When PC extraction is used (pc(k) in formula), the variance-covariance matrix calculation is automatically disabled as it is not correct. One should consider bootstrapping instead.
+- **Time fixed effects** are not supported directly, but one can use a single factor pc(1) instead.
+- Some algorithms require **balanced panels**.
+- The `debiased_ols` and `scalar_search` algorithms require **complete market coverage**
+
+---
+
+## To-do List
+- Expose `build_error_function` interface.
+
+---
 
 ## References
 
