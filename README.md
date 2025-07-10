@@ -90,6 +90,21 @@ If the adding-up constraint is not satisfied, the model will adjust accordingly,
 
 ---
 
+### Internal PC
+
+Internal PC extractions are supported. With internal PCs, the moment conditions become:
+
+$$
+\mathbb E[u_{i,t}u_{j,t}] = \Lambda \Lambda'
+$$
+
+where $\Lambda$ is the factor loadings estimated internally using [HeteroPCA.jl](https://github.com/FuZhiyu/HeteroPCA.jl) from $u_{i,t}(z) \equiv q_{i,t} + p_{t}\times\mathbf{C}_{i,t}'\boldsymbol{z}$ at each guess of $z$. 
+
+However, with small samples, the exactly root solving the moment condition may not exist, and users may want to use an minimizer to minimize the error instead. Also, be noted that a model with fully flexible elasticity specification and fully flexible factor loadings is not theoretically identifiable. 
+
+
+---
+
 ## Usage
 
 ### Basic Example
