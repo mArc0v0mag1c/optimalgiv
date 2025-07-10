@@ -584,11 +584,11 @@ Each simulation returns a pandas DataFrame with columns:
 ---
 
 ## Limitations
-- PC extraction limitations: Only :iv and :iv_twopass algorithms support internal PC extraction. The :debiased_ols and :scalar_search algorithms do not support PC extraction.
-- Variance-covariance matrix: When PC extraction is used (pc(k) in formula), the variance-covariance matrix calculation is automatically disabled as it is not correct. One should consider bootstrapping instead.
-- Time fixed effects are not supported directly, but one can use a single factor pc(1) instead.
-- Some algorithms require balanced panels.
-- The `debiased_ols` and `scalar_search` algorithms require complete market coverage
+- **PC extraction limitations**: Only `iv` and `iv_twopass` algorithms support internal PC extraction. The `debiased_ols` and `scalar_search` algorithms do not support PC extraction.
+- **Variance-covariance matrix**: When PC extraction is used (pc(k) in formula), the variance-covariance matrix calculation is automatically disabled as it is not correct. One should consider bootstrapping instead.
+- **Time fixed effects** are not supported directly, but one can use a single factor pc(1) instead.
+- Some algorithms require **balanced panels**.
+- The `debiased_ols` and `scalar_search` algorithms require **complete market coverage**
 
 ---
 
