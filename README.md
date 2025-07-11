@@ -6,9 +6,9 @@ This wrapper uses [PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl) to c
 
 **This python package is under active development** The core algorithms are implemented in Julia, and thoroughly tested under simulations, but documentations are working in progress, and bugs may exists for minor features. Feature requests and bug reports are welcomed. 
 
-This README focuses on the use for Python API.  For more technical documentation, please see [the Julia package](https://github.com/FuZhiyu/OptimalGIV.jl/blob/main/README.md) and the [companion paper](https://fuzhiyu.me/TreasuryGIVPaper/Treasury_GIV_draft.pdf).
+> This README focuses on the use for Python API.  For more technical documentation, please see [the Julia package](https://github.com/FuZhiyu/OptimalGIV.jl/blob/main/README.md) and the [companion paper](https://fuzhiyu.me/TreasuryGIVPaper/Treasury_GIV_draft.pdf).
 
-**Support for multithreading by PythonCall.jl is experimental** If you encounter segfault, please set `JULIA_NUM_THREADS = 1` in the environmental variables.
+> Support for multithreading by PythonCall.jl is experimental** If you encounter segfault, please set `JULIA_NUM_THREADS = 1` in the environmental variables.
 ---
 
 ## Installation
