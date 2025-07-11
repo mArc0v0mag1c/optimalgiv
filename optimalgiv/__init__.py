@@ -10,7 +10,7 @@ os.environ.setdefault("JULIA_NUM_THREADS", "1")
 
 if int(os.getenv("JULIA_NUM_THREADS")) > 1:
     warnings.warn(
-        "OptimalGIV is more stable on a single Julia thread. "
+        "The support of multithreading with JuliaCall is experimental. "
         "You have JULIA_NUM_THREADS="
         + os.environ["JULIA_NUM_THREADS"]
         + ".  If you see segfaults, rerun with 1."

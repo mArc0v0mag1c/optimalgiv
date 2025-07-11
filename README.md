@@ -1,13 +1,14 @@
 # optimalgiv
 
-A minimal Python wrapper for [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl)
+A Python wrapper for the Julia package [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl)
 
-This interface enables Python users to call Granular Instrumental Variables (GIV) estimators directly on pandas DataFrames using JuliaCall.
-Julia is automatically installed and all dependencies are resolved without manual setup.
+This wrapper uses [PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl) to call the Julia package directly from Python. Julia is automatically installed and all dependencies are resolved without manual setup. 
 
-> **Note:** This README provides full usage details for Python users.  
-> For more technical and Julia-specific documentation, please see [here](https://github.com/FuZhiyu/OptimalGIV.jl/blob/main/README.md)
+**This python package is under active development** The core algorithms are implemented in Julia, and thoroughly tested under simulations, but documentations are working in progress, and bugs may exists for minor features. Feature requests and bug reports are welcomed. 
 
+This README focuses on the use for Python API.  For more technical documentation, please see [the Julia package](https://github.com/FuZhiyu/OptimalGIV.jl/blob/main/README.md) and the [companion paper](https://fuzhiyu.me/TreasuryGIVPaper/Treasury_GIV_draft.pdf).
+
+**Support for multithreading by PythonCall.jl is experimental** If you encounter segfault, please set `JULIA_NUM_THREADS = 1` in the environmental variables.
 ---
 
 ## Installation
@@ -21,7 +22,7 @@ pip install optimalgiv
 The first time you run:
 
 ```python
-import optimalgiv
+import optimalgiv as og
 ```
 
 it will:
@@ -114,8 +115,8 @@ import pandas as pd
 import numpy as np
 from optimalgiv import giv
 
-# Use a properly simulated dataset with 5 sectors ('id' column) and multiple periods ('t')
-df = pd.read_csv("./simdata1.csv")
+df = pd.read_csv("./simdata1.csv") # you can find simdata under the git repo examples/
+# or simulate using simulate_data below
 
 df['id'] = df['id'].astype('category') # ensure id interactions map to distinct groups
 
@@ -159,7 +160,7 @@ model.summary()
 The model formula follows the convention:
 
 ```python
-q + interactions & endog(p) ~ exog_controls
+q + interactions & endog(p) ~ exog_controls + pc(k)
 ```
 
 Where:
@@ -170,24 +171,28 @@ Where:
   > **Note:** A *positive* estimated coefficient implies a *negative* response of `q` to `p` (i.e., a downward-sloping demand curve).
 * `interactions`: Exogenous variables used to parameterize **heterogeneous elasticities**, such as entity identifiers or group characteristics.
 * `exog_controls`: Exogenous control variables. Supports **fixed effects** (e.g., `fe(id)`) using the same syntax as `FixedEffectModels.jl`.
+* `pc(k)`: Principal component extraction with `k` factors (optional). When specified, `k` common factors are extracted from residuals using HeteroPCA.jl 
+
 
 #### Examples of formulas:
 
 ```
-# 1. Homogeneous elasticity with no intercept and two controls
-formula = "q + endog(p) ~ 0 + n1 + n2"
+# Homogeneous elasticity with entity-specific loadings (estimated) and fixed effects (absorbed)
+formula = "q + endog(p) ~ id & η + fe(id)"
 
-# 2. Homogeneous elasticity, with fixed effects absorbed by id
-formula ="q + endog(p) ~ n1 + n2 + fe(id)"
+# Heterogeneous elasticity by entity
+formula = "q + id & endog(p) ~ id & η + fe(id)"
 
-# 3. Heterogeneous elasticity by id, no controls
-formula ="q + id & endog(p) ~ 1"
+# Multiple interactions
+formula = "q + id & endog(p) + category & endog(p) ~ fe(id) & η1 + η2"
 
-# 4. Heterogeneous elasticity by id, with one control
-formula ="q + id & endog(p) ~ n1"
+formula = "q + id & endog(p) ~ 0 + id & η"
 
-# 5. Fully saturated: elasticity by id, controls and intercepts vary by id (absorbed by fixed effect), no global intercept
-formula ="q + id & endog(p) ~ 0 + fe(id) + fe(id) & (n1 + n2)"
+# With PC extraction (2 factors)
+formula = "q + endog(p) ~ 0 + pc(2)"
+
+# exogneous controls with PC extraction
+formula = "q + endog(p) ~ fe(id) & η1 + pc(3)"
 ```
 ---
 
@@ -237,14 +242,6 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
 
 #### Advanced keyword arguments (Optional; Use with caution)
 
-* **`contrasts`** (`Dict[str, Union[str, Any]]`) Specifies encoding schemes for **categorical variables**, following Julia's [`StatsModels.jl`](https://juliastats.org/StatsModels.jl/stable/contrasts/).
-  > ⚠️ **Untested at all!** — use at your own risk.
-  * Keys: column names (as strings).
-  * Values: either
-    * a string like `"HelmertCoding"`, `"TreatmentCoding"` (converted automatically to `StatsModels.<X>()`), or
-    * an actual Julia object like `jl.StatsModels.HelmertCoding()`
-      The bridge converts this to a Julia `Dict(:id => HelmertCoding(), ...)` for use in formula parsing.
-
 * **`solver_options`** (`Dict[str, Any]`)
   Extra options passed to the nonlinear system solver from [`NLsolve.jl`](https://github.com/JuliaNLSolvers/NLsolve.jl).
   The Python dict is converted to a Julia `NamedTuple` with keyword-style arguments.
@@ -282,7 +279,7 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
 
 The package implements four algorithms for GIV estimation:
 
-1. **`"iv"`** (Instrumental Variables)  
+1. **`"iv"`**  
    - Default, recommended  
    - Uses moment condition $$\(\mathbb{E}[u_i\,u_{S,-i}]=0\)$$  
    - $$O(N)\$$ implementation  
@@ -345,7 +342,7 @@ model3 = giv(
 )
 
 # 4) Dict keyed by exact coefnames
-names = model3.coefnames()
+names = model3.coefnames
 guess = {name: 0.1 for name in names}
 model4 = giv(
     df,
@@ -384,7 +381,7 @@ The package supports extracting principal components from residuals to capture u
 # Add pc(k) to the formula to extract k principal components
 model = giv(
     df,
-    "q + id & endog(p) ~ X + pc(2)",  # Extract 2 PCs from residuals
+    "q + endog(p) ~ fe(id) + pc(2)",  # Extract 2 PCs from residuals
     id="id", t="t", weight="S",
     save_df=True  # Needed to access PC factors/loadings in df
 )
@@ -396,7 +393,16 @@ model.pc_loadings    # N×k matrix of entity loadings
 model.pc_model       # HeteroPCAModel object with details
 ```
 
-#### PCA Options
+#### Internal PCA
+
+Internal PC extractions are supported. With internal PCs, the moment conditions become $\mathbb E[u_{i,t}u_{j,t}] = \Lambda \Lambda'$, where $\Lambda$ is the factor loadings estimated internally using [HeteroPCA.jl](https://github.com/FuZhiyu/HeteroPCA.jl) from $u_{i,t}(z) \equiv q_{i,t} + p_{t}\times\mathbf{C}_{i,t}'\boldsymbol{z}$ at each guess of $z$. However, following caveats apply:
+
+- With internal PC extraction, the weighting scheme is no longer optimal as it does not consider the covariance in the moment conditions due to common factor estimation. The standard error formula also no longer applies and hence was not returned. One can consider bootstrapping for statistical inference; 
+
+- In small samples, the exactly root solving the moment condition may not exist, and users may want to use an minimizer to minimize the error instead. 
+
+- A model with fully flexible elasticity specification and fully flexible internal factor loadings is not theoretically identifiable. Hence, one needs to assume certain level of homogeneity to estimate factors internally. 
+
 
 You can customize the PC extraction algorithm using the `pca_option` parameter:
 
@@ -414,33 +420,16 @@ model = giv(
             condition_number_threshold=5.0,
         ),
 
-        # If you already have the Julia object, you can pass it instead:
-        # 'algorithm': jl.HeteroPCA.DeflatedHeteroPCA(
-        #                 t_block=20,
-        #                 condition_number_threshold=5.0,
-        #             ),
-
         'impute_method': 'zero',   # auto-converted to :zero
         'demean': False,
         'maxiter': 200,
     }
 )
 
-# Alternative: use string specification
-model = giv(
-    df,
-    "q + id & endog(p) ~ X + pc(2)",
-    id="id", t="t", weight="S",
-    pca_option={
-        'algorithm': 'StandardHeteroPCA',  # or 'DiagonalDeletion'
-        'impute_method': 'pairwise',
-        'demean': True
-    }
-)
 ```
 
 Available algorithms:
-- `'algorithm': 'DeflatedHeteroPCA','algorithm_options': {'t_block': 10, 'condition_number_threshold': 4.0}`: Deflated algorithm with adaptive block sizing
+- `'algorithm': 'DeflatedHeteroPCA', which supports additional 'algorithm_options': {'t_block': 10, 'condition_number_threshold': 4.0}`: Deflated algorithm with adaptive block sizing
 - `'algorithm': 'StandardHeteroPCA'`: Standard iterative algorithm
 - `'algorithm': 'DiagonalDeletion'`: Single-step diagonal deletion method
 
