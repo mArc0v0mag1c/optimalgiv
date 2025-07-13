@@ -1,5 +1,7 @@
 # optimalgiv
 
+[![CI](https://github.com/mArc0v0mag1c/optimalgiv/actions/workflows/ci.yml/badge.svg)](https://github.com/mArc0v0mag1c/optimalgiv/actions/workflows/ci.yml)
+
 A Python wrapper for the Julia package [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl)
 
 This wrapper uses [PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl) to call the Julia package directly from Python. Julia is automatically installed and all dependencies are resolved without manual setup. 
