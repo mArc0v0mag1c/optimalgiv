@@ -33,7 +33,9 @@ if not hasattr(sys, "_julia_env_initialized"):
     force    = os.getenv("OPTIMALGIV_FORCE_SETUP") == "1"
 
     jl.seval("import Pkg")
-    jl.seval(f'Pkg.activate("{_pkg_dir}")')
+    # Use raw string to handle Windows paths correctly
+    _pkg_dir_escaped = _pkg_dir.replace("\\", "/")
+    jl.seval(f'Pkg.activate("{_pkg_dir_escaped}")')
 
     # -------------------------------------------------------------------------
     # Decide whether we need a *full* setup or the quick path
