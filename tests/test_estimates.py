@@ -72,8 +72,8 @@ def test_homogeneous_algorithms_agree():
     m_ols = giv(df, f, id = "id", t = "t", weight = "absS",
                 guess=[1.0], algorithm="debiased_ols")
 
-    assert np.allclose(m_scalar.coef(), m_iv.coef(), atol=1e-6)
-    assert np.allclose(m_scalar.coef(), m_ols.coef(), atol=1e-6)
+    assert np.allclose(m_scalar.coef, m_iv.coef, atol=1e-6)
+    assert np.allclose(m_scalar.coef, m_ols.coef, atol=1e-6)
 
 
 # --------------------------------------------------------------------
@@ -133,8 +133,8 @@ def test_heterogeneous_algorithms_agree():
                 algorithm="debiased_ols",
                 tol=1e-8)
 
-    assert np.allclose(m_scalar.coef(), m_iv.coef(), atol=1e-6)
-    assert np.allclose(m_scalar.coef(), m_ols.coef(), atol=1e-6)
+    assert np.allclose(m_scalar.coef, m_iv.coef, atol=1e-6)
+    assert np.allclose(m_scalar.coef, m_ols.coef, atol=1e-6)
 
 
 if __name__ == "__main__":
