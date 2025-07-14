@@ -66,6 +66,7 @@ if not hasattr(sys, "_julia_env_initialized"):
         """)
 
         # Resolve/instantiate & precompile once
+        jl.seval("Pkg.resolve()")
         jl.seval("Pkg.instantiate()")
         jl.seval("Pkg.precompile()")
 
