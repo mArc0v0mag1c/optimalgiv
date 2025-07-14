@@ -87,6 +87,7 @@ jobs:
           JULIA_NUM_THREADS: 1
       
       - name: Run Julia-Python integration tests
+        shell: bash
         run: |
           # Remove any existing outputs to force fresh Julia run
           rm -rf tests/julia_comparison/outputs
