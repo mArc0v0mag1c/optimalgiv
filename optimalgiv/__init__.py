@@ -44,24 +44,13 @@ if not hasattr(sys, "_julia_env_initialized"):
         # Make sure the General registry exists (cheap if it already does)
         jl.seval('Pkg.Registry.add("General")')
 
-        jl.seval(
-            '''
-            import Pkg
-            Pkg.add(Pkg.PackageSpec(
-                url = "https://github.com/FuZhiyu/HeteroPCA.jl"
-            ))
-            '''
-        )
 
         # Add ONLY missing packages (skips the network if already present)
         pkgs = [
             ("PythonCall",  "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"),
             ("OptimalGIV",  "bf339e5b-51e6-4b7b-82b3-758165633231"),
             ("DataFrames",  "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"),
-            ("StatsModels", "3eaba693-59b7-5ba5-a881-562e759f1c8d"),
             ("CategoricalArrays","324d7699-5711-5eae-9e2f-1d82baa6b597"),
-            ("StatsFuns",   "4c63d2b9-4356-54db-8cca-17b64c39e42c"),
-            ("LineSearches","d3d80556-e9d4-5f37-9878-2ab0fcc64255"),
         ]
         jl.packages_to_add = pkgs   # hand it over once
         jl.seval("""
@@ -88,8 +77,8 @@ if not hasattr(sys, "_julia_env_initialized"):
     # -------------------------------------------------------------------------
     # Finally, load the packages we need in this session
     # -------------------------------------------------------------------------
-    jl.seval("using PythonCall, OptimalGIV, DataFrames, StatsModels, "
-             "CategoricalArrays, StatsFuns, LineSearches, HeteroPCA")
+    jl.seval("using PythonCall, OptimalGIV, DataFrames, "
+             "CategoricalArrays")
 
     # Cache flag for rest of Python process
     sys._julia_env_initialized = True
