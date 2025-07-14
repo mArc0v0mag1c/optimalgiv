@@ -14,8 +14,23 @@ license         = { file = "LICENSE" }
 dependencies = [
     "pandas >= 1.5",
     "numpy >= 1.22",
+    "scipy >= 1.9",
     "juliacall == 0.9.24",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest >= 7.0",
+    "pytest-cov >= 4.0",
+    "pytest-xdist >= 3.0",
+]
+
 [project.urls]
-"Source" = "https://github.com/mArc0v0mag1c/optimalgiv"
+"Source" = "https://github.com/FuZhiyu/optimalgiv"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-xdist>=3.8.0",
+]

@@ -1,5 +1,7 @@
 # optimalgiv
 
+[![CI](https://github.com/mArc0v0mag1c/optimalgiv/actions/workflows/ci.yml/badge.svg)](https://github.com/mArc0v0mag1c/optimalgiv/actions/workflows/ci.yml)
+
 A Python wrapper for the Julia package [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl)
 
 This wrapper uses [PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl) to call the Julia package directly from Python. Julia is automatically installed and all dependencies are resolved without manual setup. 
@@ -32,14 +34,6 @@ it will:
 
 Later imports will be much faster (≈ 6–10 s), which is typical for Julia project activation—the environment is compiled once and then reused.
 
-> **Note for existing Julia users or if you want to update after some time:**
-
-```python
-## To update Julia packages, run:
-
-import optimalgiv as og
-og.update_packages()
-```
 
 ---
 
@@ -252,10 +246,6 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
   * `"xtol"`: absolute solution tolerance
   * `"iterations"`: max iterations
   * `"show_trace"`: verbose output
-  * `"linesearch"`: can be
-
-    * a Julia object like `jl.LineSearches.HagerZhang()`, or
-    * a string like `"HagerZhang"`, which is expanded to `LineSearches.HagerZhang()` automatically
 
   **Example:**
 
@@ -266,7 +256,6 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
       "xtol": 1e-8,
       "iterations": 1000,
       "show_trace": True,
-      "linesearch": "HagerZhang",  # ← string is auto-converted
   }
 
   model = giv(df, formula, id="id", t="t", solver_options=solver_opts)

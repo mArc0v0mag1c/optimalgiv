@@ -19,14 +19,14 @@ class HeteroPCAModel:
         self.projection  = np.asarray(jl_model.proj)
         self.prinvars    = np.asarray(jl_model.prinvars)
         self.noisevars   = np.asarray(jl_model.noisevars)
-        self.r2          = float(jl.HeteroPCA.r2(jl_model))
+        self.r2          = float(jl.OptimalGIV.HeteroPCA.r2(jl_model))
         self.converged   = bool(jl_model.converged)
         self.iterations  = int(jl_model.iterations)
 
     # -------- hybrid helpers – call Julia, return NumPy ---------------
     def loadings(self):
         # un-standardised loadings = √prinvars .* projection
-        return np.asarray(jl.HeteroPCA.loadings(self._jl))
+        return np.asarray(jl.OptimalGIV.HeteroPCA.loadings(self._jl))
 
     def predict(self, X, lam=0.0):
         """
@@ -37,14 +37,14 @@ class HeteroPCAModel:
         numpy.ndarray
             k × n matrix of factor scores.
         """
-        Z = jl.HeteroPCA.predict(self._jl, X, λ=float(lam))
+        Z = jl.OptimalGIV.HeteroPCA.predict(self._jl, X, λ=float(lam))
         return np.asarray(Z)
 
     def reconstruct(self, F):
         """
         Low-rank reconstruction given factor scores F (k × n).
         """
-        Y = jl.HeteroPCA.reconstruct(self._jl, F)
+        Y = jl.OptimalGIV.HeteroPCA.reconstruct(self._jl, F)
         return np.asarray(Y)
 
     # -------- niceties --------------------------------------------------
