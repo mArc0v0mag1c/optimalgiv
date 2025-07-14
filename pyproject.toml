@@ -26,7 +26,7 @@ test = [
 ]
 
 [project.urls]
-"Source" = "https://github.com/mArc0v0mag1c/optimalgiv"
+"Source" = "https://github.com/FuZhiyu/optimalgiv"
 
 [dependency-groups]
 dev = [

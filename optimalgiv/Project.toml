@@ -1,0 +1,5 @@
+[deps]
+CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+OptimalGIV = "bf339e5b-51e6-4b7b-82b3-758165633231"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"

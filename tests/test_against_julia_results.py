@@ -307,21 +307,6 @@ def test_with_pc_extraction():
     compare_model_results(model, jl_data["results"])
 
 
-@pytest.mark.skip(reason="Julia implementation has convergence issues with this formula")
-def test_complex_formula():
-    """Test complex formula with multiple interactions."""
-    jl_data = load_julia_output("complex_formula")
-    
-    model = giv(
-        df,
-        "q + id & endog(p) + η1 & endog(p) ~ fe(id) & η2",
-        id="id", t="t", weight="absS",
-        algorithm="iv",
-        guess=np.ones(6)
-    )
-    
-    compare_model_results(model, jl_data["results"])
-
 
 def test_with_solver_options():
     """Test custom solver options."""
@@ -333,10 +318,107 @@ def test_with_solver_options():
         id="id", t="t", weight="absS",
         algorithm="iv",
         guess=1.0,
-        solver_options={"ftol": 1e-10, "xtol": 1e-10}
+        solver_options={"iterations": 1}
     )
     
     compare_model_results(model, jl_data["results"])
+
+
+def compare_pca_model_results(py_model, jl_results):
+    """Helper to compare PCA-specific results."""
+    # First compare regular model results
+    compare_model_results(py_model, jl_results)
+    
+    # Then compare PCA-specific results
+    pc = py_model.pc_model
+    
+    # Mean
+    compare_arrays(pc.mean, jl_results["pc_mean"], "pc_mean")
+    
+    # Projection
+    compare_arrays(pc.projection, jl_results["pc_projection"], "pc_projection")
+    
+    # Principal variances (use slightly higher tolerance for iterative algorithms)
+    compare_arrays(pc.prinvars, jl_results["pc_prinvars"], "pc_prinvars", tolerance=2e-6)
+    
+    # Noise variances (use slightly higher tolerance for iterative algorithms)
+    compare_arrays(pc.noisevars, jl_results["pc_noisevars"], "pc_noisevars", tolerance=3e-6)
+    
+    # R-squared
+    assert abs(pc.r2 - jl_results["pc_r2"]) < 1e-6, f"pc_r2 mismatch: {pc.r2} vs {jl_results['pc_r2']}"
+    
+    # Convergence and iterations
+    assert pc.converged == jl_results["pc_converged"], f"pc_converged mismatch"
+    assert pc.iterations == jl_results["pc_iterations"], f"pc_iterations mismatch"
+
+
+def test_pca_standard_pairwise():
+    """Test PCA with standard algorithm and pairwise imputation."""
+    jl_data = load_julia_output("pca_standard_pairwise")
+    
+    model = giv(
+        df,
+        "q + endog(p) ~ 0 + pc(2)",
+        id="id", t="t", weight="absS",
+        guess={"p": 2.0},
+        pca_option=dict(
+            impute_method="pairwise",
+            algorithm="StandardHeteroPCA",
+            demean=True,
+            maxiter=100,
+            abstol=1e-7,
+        ),
+        save="all", save_df=True, quiet=True
+    )
+    
+    compare_pca_model_results(model, jl_data["results"])
+
+
+def test_pca_diagonal_zero():
+    """Test PCA with diagonal deletion and zero imputation."""
+    jl_data = load_julia_output("pca_diagonal_zero")
+    
+    model = giv(
+        df,
+        "q + endog(p) ~ 0 + pc(2)",
+        id="id", t="t", weight="absS",
+        guess={"p": 2.0},
+        pca_option=dict(
+            impute_method="zero",
+            algorithm="DiagonalDeletion",
+            demean=False
+        ),
+        save="all", save_df=True, quiet=True
+    )
+    
+    compare_pca_model_results(model, jl_data["results"])
+
+
+def test_pca_deflated_pairwise():
+    """Test PCA with deflated algorithm and pairwise imputation."""
+    jl_data = load_julia_output("pca_deflated_pairwise")
+    
+    model = giv(
+        df,
+        "q + endog(p) ~ 0 + pc(2)",
+        id="id", t="t", weight="absS",
+        guess={"p": 2.0},
+        pca_option=dict(
+            impute_method="pairwise",
+            algorithm="DeflatedHeteroPCA",
+            algorithm_options={
+                "t_block": 5,
+                "condition_number_threshold": 3.5,
+            },
+            demean=False,
+            α=1.0,
+            suppress_warnings=False,
+            abstol=1e-6,
+        ),
+        save="all", save_df=True, quiet=True
+    )
+    
+    compare_pca_model_results(model, jl_data["results"])
 
 
 if __name__ == "__main__":

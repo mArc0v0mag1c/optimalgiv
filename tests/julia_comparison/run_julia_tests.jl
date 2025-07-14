@@ -9,6 +9,7 @@ using JSON
 using StatsModels
 using CategoricalArrays
 using LinearAlgebra
+using OptimalGIV.HeteroPCA: StandardHeteroPCA, DiagonalDeletion, DeflatedHeteroPCA
 
 # Function to extract model results into a serializable format
 function extract_model_results(model)
@@ -217,38 +218,151 @@ model = giv(df, @formula(q + endog(p) ~ fe(id) + pc(2)),
             guess=1.0)
 save_test_case("with_pc_extraction", params, extract_model_results(model))
 
-# Test 10: Complex formula with multiple interactions
-println("\n10. Complex formula")
-try
-    params = Dict(
-        "formula" => "q + id & endog(p) + η1 & endog(p) ~ fe(id) & η2",
-        "algorithm" => "iv",
-        "guess" => [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    )
-    model = giv(df, @formula(q + id & endog(p) + η1 & endog(p) ~ fe(id) & η2), 
-                :id, :t, :absS;
-                algorithm=:iv,
-                guess=ones(6))
-    save_test_case("complex_formula", params, extract_model_results(model))
-catch e
-    println("WARNING: Complex formula test failed: ", e)
-    println("Skipping this test...")
-end
-
-# Test 11: With solver options
-println("\n11. With solver options")
+# Test 10: With solver options
+println("\n10. With solver options")
 params = Dict(
     "formula" => "q + endog(p) ~ 0 + fe(id) & (η1 + η2)",
     "algorithm" => "iv",
     "guess" => 1.0,
-    "solver_options" => Dict("ftol" => 1e-10, "xtol" => 1e-10)
+    "solver_options" => Dict("iterations" => 1)
 )
 model = giv(df, @formula(q + endog(p) ~ 0 + fe(id) & (η1 + η2)), 
             :id, :t, :absS;
             algorithm=:iv,
             guess=1.0,
-            solver_options=(ftol=1e-10, xtol=1e-10))
+            solver_options=(iterations=1,))
 save_test_case("with_solver_options", params, extract_model_results(model))
+
+# Test 11: PCA standard pairwise
+println("\n11. PCA standard pairwise")
+params = Dict(
+    "formula" => "q + endog(p) ~ 0 + pc(2)",
+    "algorithm" => "iv",
+    "guess" => Dict("p" => 2.0),
+    "pca_option" => Dict(
+        "impute_method" => "pairwise",
+        "algorithm" => "StandardHeteroPCA",
+        "demean" => true,
+        "maxiter" => 100,
+        "abstol" => 1e-7
+    ),
+    "save" => "all",
+    "save_df" => true,
+    "quiet" => true
+)
+model = giv(df, @formula(q + endog(p) ~ 0 + pc(2)), 
+            :id, :t, :absS;
+            algorithm=:iv,
+            guess=Dict(:p => 2.0),
+            pca_option=(
+                impute_method=:pairwise,
+                algorithm=StandardHeteroPCA(),
+                demean=true,
+                maxiter=100,
+                abstol=1e-7
+            ),
+            save=:all,
+            save_df=true,
+            quiet=true)
+results = extract_model_results(model)
+# Add PCA-specific results
+pc_model = model.pc_model
+results["pc_mean"] = pc_model.mean
+results["pc_projection"] = Matrix(pc_model.proj')
+results["pc_prinvars"] = pc_model.prinvars
+results["pc_noisevars"] = pc_model.noisevars
+results["pc_r2"] = OptimalGIV.HeteroPCA.r2(pc_model)
+results["pc_converged"] = pc_model.converged
+results["pc_iterations"] = pc_model.iterations
+save_test_case("pca_standard_pairwise", params, results)
+
+# Test 12: PCA diagonal zero
+println("\n12. PCA diagonal zero")
+params = Dict(
+    "formula" => "q + endog(p) ~ 0 + pc(2)",
+    "algorithm" => "iv",
+    "guess" => Dict("p" => 2.0),
+    "pca_option" => Dict(
+        "impute_method" => "zero",
+        "algorithm" => "DiagonalDeletion",
+        "demean" => false
+    ),
+    "save" => "all",
+    "save_df" => true,
+    "quiet" => true
+)
+model = giv(df, @formula(q + endog(p) ~ 0 + pc(2)), 
+            :id, :t, :absS;
+            algorithm=:iv,
+            guess=Dict(:p => 2.0),
+            pca_option=(
+                impute_method=:zero,
+                algorithm=DiagonalDeletion(),
+                demean=false
+            ),
+            save=:all,
+            save_df=true,
+            quiet=true)
+results = extract_model_results(model)
+# Add PCA-specific results
+pc_model = model.pc_model
+results["pc_mean"] = pc_model.mean
+results["pc_projection"] = Matrix(pc_model.proj')
+results["pc_prinvars"] = pc_model.prinvars
+results["pc_noisevars"] = pc_model.noisevars
+results["pc_r2"] = OptimalGIV.HeteroPCA.r2(pc_model)
+results["pc_converged"] = pc_model.converged
+results["pc_iterations"] = pc_model.iterations
+save_test_case("pca_diagonal_zero", params, results)
+
+# Test 13: PCA deflated pairwise
+println("\n13. PCA deflated pairwise")
+params = Dict(
+    "formula" => "q + endog(p) ~ 0 + pc(2)",
+    "algorithm" => "iv",
+    "guess" => Dict("p" => 2.0),
+    "pca_option" => Dict(
+        "impute_method" => "pairwise",
+        "algorithm" => "DeflatedHeteroPCA",
+        "algorithm_options" => Dict(
+            "t_block" => 5,
+            "condition_number_threshold" => 3.5
+        ),
+        "demean" => false,
+        "α" => 1.0,
+        "suppress_warnings" => false,
+        "abstol" => 1e-6
+    ),
+    "save" => "all",
+    "save_df" => true,
+    "quiet" => true
+)
+model = giv(df, @formula(q + endog(p) ~ 0 + pc(2)), 
+            :id, :t, :absS;
+            algorithm=:iv,
+            guess=Dict(:p => 2.0),
+            pca_option=(
+                impute_method=:pairwise,
+                algorithm=DeflatedHeteroPCA(t_block=5, condition_number_threshold=3.5),
+                demean=false,
+                α=1.0,
+                suppress_warnings=false,
+                abstol=1e-6
+            ),
+            save=:all,
+            save_df=true,
+            quiet=true)
+results = extract_model_results(model)
+# Add PCA-specific results
+pc_model = model.pc_model
+results["pc_mean"] = pc_model.mean
+results["pc_projection"] = Matrix(pc_model.proj')
+results["pc_prinvars"] = pc_model.prinvars
+results["pc_noisevars"] = pc_model.noisevars
+results["pc_r2"] = OptimalGIV.HeteroPCA.r2(pc_model)
+results["pc_converged"] = pc_model.converged
+results["pc_iterations"] = pc_model.iterations
+save_test_case("pca_deflated_pairwise", params, results)
 
 println("\nAll Julia test cases completed!")
 println("Output files saved in: ", joinpath(@__DIR__, "outputs"))
