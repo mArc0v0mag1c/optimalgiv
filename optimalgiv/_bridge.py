@@ -329,7 +329,7 @@ def giv(
 
                 # Handle string specifications
                 if isinstance(v, str):
-                    jval = jl.seval(f"StatsModels.{v}()")
+                    jval = jl.seval(f"OptimalGIV.StatsModels.{v}()")
                 # Handle direct Julia objects
                 elif hasattr(v, '__call__'):
                     jval = v
@@ -363,14 +363,9 @@ def giv(
             #     else:
             #         jval = py_val
 
-            # --- special case `linesearch`: either a Julia object or string name ---
+            # --- linesearch is disabled, skip it ---
             if py_key == "linesearch":
-                if isinstance(py_val, str):
-                    # e.g. "HagerZhang" → LineSearches.HagerZhang()
-                    jval = jl.seval(f"LineSearches.{py_val}()")
-                else:
-                    # assume they already passed jl.LineSearches.HagerZhang()
-                    jval = py_val
+                raise TypeError(f"linesearch is not supported")
 
             elif isinstance(py_val, str):
                 jval = jl.Symbol(py_val)
@@ -413,7 +408,7 @@ def giv(
                     jl.seval("""
                         _giv_apply_kw(f, nt::NamedTuple) = f(; nt...)
                     """)
-                algo_ctor = getattr(jl.HeteroPCA, algo_name)
+                algo_ctor = getattr(jl.OptimalGIV.HeteroPCA, algo_name)
                 jval = jl._giv_apply_kw(algo_ctor, jl_algo_kw_nt)
 
             # -----------------------------------------------------------

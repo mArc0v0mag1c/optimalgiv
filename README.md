@@ -254,10 +254,6 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
   * `"xtol"`: absolute solution tolerance
   * `"iterations"`: max iterations
   * `"show_trace"`: verbose output
-  * `"linesearch"`: can be
-
-    * a Julia object like `jl.LineSearches.HagerZhang()`, or
-    * a string like `"HagerZhang"`, which is expanded to `LineSearches.HagerZhang()` automatically
 
   **Example:**
 
@@ -268,7 +264,6 @@ $\sum_i S_{i,t} q_{i,t} = 0$ holds exactly within the sample.
       "xtol": 1e-8,
       "iterations": 1000,
       "show_trace": True,
-      "linesearch": "HagerZhang",  # ← string is auto-converted
   }
 
   model = giv(df, formula, id="id", t="t", solver_options=solver_opts)
