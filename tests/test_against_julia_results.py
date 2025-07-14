@@ -62,7 +62,7 @@ def ensure_julia_outputs_exist():
 def load_julia_output(test_name):
     """Load Julia test output from JSON file."""
     file_path = JULIA_OUTPUTS_DIR / f"{test_name}.json"
-    with open(file_path, 'r') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
