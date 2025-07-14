@@ -1,5 +1,6 @@
 import os
 import warnings
+import juliapkg
 
 #------------------------------------------------------------------
 # Default to 1 Julia thread unless the caller set it explicitly
