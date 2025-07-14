@@ -32,14 +32,6 @@ it will:
 
 Later imports will be much faster (≈ 6–10 s), which is typical for Julia project activation—the environment is compiled once and then reused.
 
-> **Note for existing Julia users or if you want to update after some time:**
-
-```python
-## To update Julia packages, run:
-
-import optimalgiv as og
-og.update_packages()
-```
 
 ---
 
