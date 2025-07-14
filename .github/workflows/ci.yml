@@ -15,16 +15,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-        julia-version: ['1.10', 'nightly']
+        python-version: ['3.9', '3']
+        julia-version: ['lts', '1']
         os: [ubuntu-latest]
         include:
           # Add macOS and Windows for latest versions
-          - python-version: '3.13'
-            julia-version: '1.11'
+          - python-version: '3'
+            julia-version: '1'
             os: macos-latest
-          - python-version: '3.13'
-            julia-version: '1.11'
+          - python-version: '3'
+            julia-version: '1'
             os: windows-latest
     
     env:
