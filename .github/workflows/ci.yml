@@ -29,6 +29,7 @@ jobs:
     
     env:
       JULIA_NUM_THREADS: 1  # Prevent segfaults as noted in README
+      PYTHON_JULIACALL_HANDLE_SIGNALS: yes
     
     steps:
       - name: Checkout code
