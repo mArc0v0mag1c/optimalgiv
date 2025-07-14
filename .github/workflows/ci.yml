@@ -84,18 +84,19 @@ jobs:
           uv run python -m pytest tests/ -v --cov=optimalgiv --cov-report=xml --cov-report=term -k "not test_against_julia_results"
         env:
           PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION: "no"
+          JULIA_NUM_THREADS: 1
       
       - name: Run Julia-Python integration tests
-        if: matrix.python-version == '3.11' && matrix.julia-version == '1.10' && matrix.os == 'ubuntu-latest'
         run: |
           # Remove any existing outputs to force fresh Julia run
           rm -rf tests/julia_comparison/outputs
           uv run python -m pytest tests/test_against_julia_results.py -v
         env:
           PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION: "no"
+          JULIA_NUM_THREADS: 1
       
       - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' && matrix.julia-version == '1.10'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3' && matrix.julia-version == '1'
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
