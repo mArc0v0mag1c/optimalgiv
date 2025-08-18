@@ -102,3 +102,5 @@ tests/julia_comparison/Manifest.toml
 # uv
 .venv/
 uv.lock
+.claude
+CLAUDE.md

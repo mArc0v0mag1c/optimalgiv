@@ -1,6 +1,6 @@
 # optimalgiv
 
-[![CI](https://github.com/mArc0v0mag1c/optimalgiv/actions/workflows/ci.yml/badge.svg)](https://github.com/mArc0v0mag1c/optimalgiv/actions/workflows/ci.yml)
+[![CI](https://github.com/FuZhiyu/optimalgiv/actions/workflows/ci.yml/badge.svg)](https://github.com/FuZhiyu/optimalgiv/actions/workflows/ci.yml)
 
 A Python wrapper for the Julia package [OptimalGIV.jl](https://github.com/FuZhiyu/OptimalGIV.jl)
 
@@ -10,8 +10,7 @@ This wrapper uses [PythonCall.jl](https://github.com/JuliaPy/PythonCall.jl) to c
 
 > This README focuses on the use for Python API.  For more technical documentation, please see [the Julia package](https://github.com/FuZhiyu/OptimalGIV.jl/blob/main/README.md) and the [companion paper](https://fuzhiyu.me/TreasuryGIVPaper/Treasury_GIV_draft.pdf).
 
-> Support for multithreading by PythonCall.jl is experimental** If you encounter segfault, please set `JULIA_NUM_THREADS = 1` in the environmental variables.
----
+> The multithreading capacity from PythonCall.jl is experimental. We recommend to set `import os; os.environ["PYTHON_JULIACALL_HANDLE_SIGNALS"] = "yes"` before import this package to avoid segfault or other crashes. See [this page](https://juliapy.github.io/PythonCall.jl/stable/juliacall/#py-multi-threading-signal-handling) for details. 
 
 ## Installation
 
